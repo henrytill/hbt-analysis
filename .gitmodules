@@ -1,0 +1,3 @@
+[submodule "hbt-ocaml"]
+	path = hbt-ocaml
+	url = https://github.com/henrytill/hbt-ocaml.git
