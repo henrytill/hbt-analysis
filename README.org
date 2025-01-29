@@ -11,13 +11,27 @@
 #+RESULTS:
 
 #+begin_src sh :results output
-  nix run nixpkgs#hyperfine -- --warmup 5 "./result-hbt-ocaml/bin/markdown ~/src/notes/all-2024.md"
+  ./result-hbt-ocaml/bin/hbt ~/src/notes/all-2024.md
 #+end_src
 
 #+RESULTS:
-: Benchmark 1: ./result-hbt-ocaml/bin/markdown ~/src/notes/all-2024.md
-:   Time (mean ± σ):      19.2 ms ±   2.2 ms    [User: 16.9 ms, System: 2.2 ms]
-:   Range (min … max):    17.8 ms …  34.8 ms    158 runs
+: /home/ht/src/notes/all-2024.md: 1123 entities
+
+#+begin_src sh :results output
+  ./result-hbt-rs/bin/hbt ~/src/notes/all-2024.md
+#+end_src
+
+#+RESULTS:
+: /home/ht/src/notes/all-2024.md: 1123 entities
+
+#+begin_src sh :results output
+  nix run nixpkgs#hyperfine -- --warmup 5 "./result-hbt-ocaml/bin/hbt ~/src/notes/all-2024.md"
+#+end_src
+
+#+RESULTS:
+: Benchmark 1: ./result-hbt-ocaml/bin/hbt ~/src/notes/all-2024.md
+:   Time (mean ± σ):      20.8 ms ±   1.6 ms    [User: 18.2 ms, System: 2.6 ms]
+:   Range (min … max):    19.0 ms …  32.6 ms    137 runs
 :  
 
 #+begin_src sh :results output
@@ -26,6 +40,6 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-rs/bin/hbt ~/src/notes/all-2024.md
-:   Time (mean ± σ):       5.4 ms ±   1.0 ms    [User: 4.2 ms, System: 1.3 ms]
-:   Range (min … max):     4.3 ms …  10.3 ms    528 runs
+:   Time (mean ± σ):       5.1 ms ±   0.5 ms    [User: 3.9 ms, System: 1.2 ms]
+:   Range (min … max):     4.4 ms …   7.7 ms    404 runs
 :  
