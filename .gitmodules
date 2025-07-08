@@ -4,3 +4,6 @@
 [submodule "hbt-rs"]
 	path = hbt-rs
 	url = https://github.com/henrytill/hbt-rs.git
+[submodule "hbt-hs"]
+	path = hbt-hs
+	url = https://github.com/henrytill/hbt-hs.git
