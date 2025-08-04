@@ -43,8 +43,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-ocaml/bin/hbt ~/src/notes/all-2024.md
-:   Time (mean ± σ):      22.3 ms ±   2.6 ms    [User: 19.3 ms, System: 3.0 ms]
-:   Range (min … max):    19.2 ms …  30.6 ms    128 runs
+:   Time (mean ± σ):      31.0 ms ±   6.7 ms    [User: 28.0 ms, System: 2.9 ms]
+:   Range (min … max):    20.8 ms …  43.0 ms    112 runs
 :  
 
 #+begin_src sh :results output
@@ -53,8 +53,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-rs/bin/hbt ~/src/notes/all-2024.md
-:   Time (mean ± σ):       5.4 ms ±   0.8 ms    [User: 3.9 ms, System: 1.4 ms]
-:   Range (min … max):     4.6 ms …   8.2 ms    517 runs
+:   Time (mean ± σ):       6.4 ms ±   1.2 ms    [User: 4.8 ms, System: 1.6 ms]
+:   Range (min … max):     4.8 ms …   8.6 ms    508 runs
 :  
 
 #+begin_src sh :results output
@@ -63,7 +63,7 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-hs/bin/hbt ~/src/notes/all-2024.md
-:   Time (mean ± σ):     181.8 ms ±  10.2 ms    [User: 163.2 ms, System: 14.3 ms]
-:   Range (min … max):   163.4 ms … 204.1 ms    16 runs
+:   Time (mean ± σ):     221.1 ms ±  19.4 ms    [User: 200.5 ms, System: 15.6 ms]
+:   Range (min … max):   193.0 ms … 263.4 ms    14 runs
 :  
 
