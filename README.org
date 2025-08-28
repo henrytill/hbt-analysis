@@ -86,7 +86,7 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-hs/bin/hbt ~/src/notes/all-2024.md
-:   Time (mean ± σ):     221.1 ms ±  19.4 ms    [User: 200.5 ms, System: 15.6 ms]
-:   Range (min … max):   193.0 ms … 263.4 ms    14 runs
+:   Time (mean ± σ):     186.8 ms ±   6.3 ms    [User: 167.5 ms, System: 14.1 ms]
+:   Range (min … max):   183.2 ms … 205.8 ms    16 runs
 :  
 
