@@ -1,4 +1,10 @@
 #+begin_src sh :results output
+  nix build ./hbt-go# -o result-hbt-go
+#+end_src
+
+#+RESULTS:
+
+#+begin_src sh :results output
   nix build ./hbt-ocaml# -o result-hbt-ocaml
 #+end_src
 
@@ -15,6 +21,13 @@
 #+end_src
 
 #+RESULTS:
+
+#+begin_src sh :results output
+  ./result-hbt-go/bin/hbt --info ~/src/notes/all-2024.md
+#+end_src
+
+#+RESULTS:
+: Collection contains 1123 entities
 
 #+begin_src sh :results output
   ./result-hbt-ocaml/bin/hbt ~/src/notes/all-2024.md
@@ -36,6 +49,16 @@
 
 #+RESULTS:
 : /home/ht/src/notes/all-2024.md: 1123 entities
+
+#+begin_src sh :results output
+  nix run nixpkgs#hyperfine -- --warmup 5 "./result-hbt-go/bin/hbt --info ~/src/notes/all-2024.md"
+#+end_src
+
+#+RESULTS:
+: Benchmark 1: ./result-hbt-go/bin/hbt --info ~/src/notes/all-2024.md
+:   Time (mean ± σ):     206.5 ms ±  10.1 ms    [User: 242.7 ms, System: 7.3 ms]
+:   Range (min … max):   196.4 ms … 236.8 ms    14 runs
+:  
 
 #+begin_src sh :results output
   nix run nixpkgs#hyperfine -- --warmup 5 "./result-hbt-ocaml/bin/hbt ~/src/notes/all-2024.md"
