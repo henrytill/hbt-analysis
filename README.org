@@ -115,6 +115,26 @@
 :   Range (min … max):    13.6 ms …  17.6 ms    203 runs
 :  
 
+** XML
+*** Verify
+#+begin_src sh :results output
+  ./result-hbt-go/bin/hbt -info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml
+#+end_src
+
+#+RESULTS:
+: Collection contains 2799 entities
+
+*** Bench
+#+begin_src sh :results output
+  nix run nixpkgs#hyperfine -- --warmup 20 "./result-hbt-go/bin/hbt -info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml"
+#+end_src
+
+#+RESULTS:
+: Benchmark 1: ./result-hbt-go/bin/hbt -info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml
+:   Time (mean ± σ):      33.0 ms ±   4.7 ms    [User: 34.2 ms, System: 3.9 ms]
+:   Range (min … max):    27.4 ms …  49.5 ms    101 runs
+:  
+
 * hbt-ocaml
 ** Build
 #+begin_src sh :results output
@@ -161,6 +181,25 @@
 : Benchmark 1: ./result-hbt-ocaml/bin/hbt --info ~/src/bookmarks/bookmarks.html
 :   Time (mean ± σ):     219.2 ms ±   3.6 ms    [User: 211.5 ms, System: 7.6 ms]
 :   Range (min … max):   214.2 ms … 223.8 ms    13 runs
+:  
+** XML
+*** Verify
+#+begin_src sh :results output
+  ./result-hbt-ocaml/bin/hbt --info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml
+#+end_src
+
+#+RESULTS:
+: /home/ht/src/bookmarks/pinboard_export.2023.10.31_02.11.xml: 2799 entities
+
+*** Bench
+#+begin_src sh :results output
+  nix run nixpkgs#hyperfine -- --warmup 20 "./result-hbt-ocaml/bin/hbt --info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml"
+#+end_src
+
+#+RESULTS:
+: Benchmark 1: ./result-hbt-ocaml/bin/hbt --info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml
+:   Time (mean ± σ):     101.1 ms ±   1.4 ms    [User: 93.6 ms, System: 7.4 ms]
+:   Range (min … max):    99.2 ms … 104.0 ms    29 runs
 :  
 
 * hbt-rs
@@ -214,3 +253,23 @@
 # Local Variables:
 # org-confirm-babel-evaluate: nil
 # End:
+
+** XML
+*** Verify
+#+begin_src sh :results output
+  ./result-hbt-rs/bin/hbt --info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml
+#+end_src
+
+#+RESULTS:
+: /home/ht/src/bookmarks/pinboard_export.2023.10.31_02.11.xml: 2799 entities
+
+*** Bench
+#+begin_src sh :results output
+  nix run nixpkgs#hyperfine -- --warmup 20 "./result-hbt-rs/bin/hbt --info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml"
+#+end_src
+
+#+RESULTS:
+: Benchmark 1: ./result-hbt-rs/bin/hbt --info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml
+:   Time (mean ± σ):      10.6 ms ±   0.7 ms    [User: 8.2 ms, System: 2.4 ms]
+:   Range (min … max):     9.9 ms …  15.3 ms    287 runs
+:  
