@@ -23,8 +23,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-hs/bin/hbt --info ~/src/notes/all-2024.md
-:   Time (mean ± σ):     149.1 ms ±   2.5 ms    [User: 134.9 ms, System: 14.2 ms]
-:   Range (min … max):   146.2 ms … 156.0 ms    20 runs
+:   Time (mean ± σ):     135.0 ms ±   1.6 ms    [User: 120.2 ms, System: 14.9 ms]
+:   Range (min … max):   132.8 ms … 137.9 ms    22 runs
 :  
 
 ** HTML
@@ -43,8 +43,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-hs/bin/hbt --info ~/src/bookmarks/bookmarks.html
-:   Time (mean ± σ):     503.4 ms ±   4.4 ms    [User: 459.2 ms, System: 44.7 ms]
-:   Range (min … max):   498.1 ms … 511.6 ms    10 runs
+:   Time (mean ± σ):      33.1 ms ±   0.5 ms    [User: 26.9 ms, System: 6.2 ms]
+:   Range (min … max):    32.5 ms …  34.9 ms    90 runs
 :  
 
 * hbt-go
