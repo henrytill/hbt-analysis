@@ -81,12 +81,12 @@
 :  
 
 #+begin_src sh :results output
-  nix run nixpkgs#hyperfine -- --warmup 5 "./result-hbt-hs/bin/hbt --info ~/src/notes/all-2024.md"
+  nix run nixpkgs#hyperfine -- --warmup 20 "./result-hbt-hs/bin/hbt --info ~/src/notes/all-2024.md"
 #+end_src
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-hs/bin/hbt --info ~/src/notes/all-2024.md
-:   Time (mean ± σ):     149.9 ms ±   3.0 ms    [User: 137.8 ms, System: 12.3 ms]
-:   Range (min … max):   147.2 ms … 161.0 ms    20 runs
+:   Time (mean ± σ):     150.3 ms ±   4.1 ms    [User: 135.3 ms, System: 15.1 ms]
+:   Range (min … max):   145.5 ms … 158.7 ms    20 runs
 :  
 
