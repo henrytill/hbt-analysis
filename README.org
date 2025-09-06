@@ -63,8 +63,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-hs/bin/hbt --info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml
-:   Time (mean ± σ):     163.9 ms ±   1.1 ms    [User: 152.7 ms, System: 11.3 ms]
-:   Range (min … max):   161.9 ms … 165.6 ms    18 runs
+:   Time (mean ± σ):      85.4 ms ±   3.7 ms    [User: 73.2 ms, System: 12.3 ms]
+:   Range (min … max):    82.9 ms … 104.2 ms    35 runs
 :  
 
 * hbt-go
