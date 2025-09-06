@@ -23,7 +23,7 @@
 #+RESULTS:
 
 #+begin_src sh :results output
-  ./result-hbt-go/bin/hbt --info ~/src/notes/all-2024.md
+  ./result-hbt-go/bin/hbt -info ~/src/notes/all-2024.md
 #+end_src
 
 #+RESULTS:
@@ -51,13 +51,13 @@
 : /home/ht/src/notes/all-2024.md: 1123 entities
 
 #+begin_src sh :results output
-  nix run nixpkgs#hyperfine -- --warmup 5 "./result-hbt-go/bin/hbt --info ~/src/notes/all-2024.md"
+  nix run nixpkgs#hyperfine -- --warmup 20 "./result-hbt-go/bin/hbt -info ~/src/notes/all-2024.md"
 #+end_src
 
 #+RESULTS:
-: Benchmark 1: ./result-hbt-go/bin/hbt --info ~/src/notes/all-2024.md
-:   Time (mean ± σ):     206.5 ms ±  10.1 ms    [User: 242.7 ms, System: 7.3 ms]
-:   Range (min … max):   196.4 ms … 236.8 ms    14 runs
+: Benchmark 1: ./result-hbt-go/bin/hbt -info ~/src/notes/all-2024.md
+:   Time (mean ± σ):       8.0 ms ±   0.9 ms    [User: 8.0 ms, System: 1.9 ms]
+:   Range (min … max):     7.3 ms …  12.3 ms    380 runs
 :  
 
 #+begin_src sh :results output
