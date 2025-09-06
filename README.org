@@ -30,7 +30,7 @@
 : Collection contains 1123 entities
 
 #+begin_src sh :results output
-  ./result-hbt-ocaml/bin/hbt ~/src/notes/all-2024.md
+  ./result-hbt-ocaml/bin/hbt --info ~/src/notes/all-2024.md
 #+end_src
 
 #+RESULTS:
@@ -61,13 +61,13 @@
 :  
 
 #+begin_src sh :results output
-  nix run nixpkgs#hyperfine -- --warmup 5 "./result-hbt-ocaml/bin/hbt ~/src/notes/all-2024.md"
+  nix run nixpkgs#hyperfine -- --warmup 5 "./result-hbt-ocaml/bin/hbt --info ~/src/notes/all-2024.md"
 #+end_src
 
 #+RESULTS:
-: Benchmark 1: ./result-hbt-ocaml/bin/hbt ~/src/notes/all-2024.md
-:   Time (mean ± σ):      31.0 ms ±   6.7 ms    [User: 28.0 ms, System: 2.9 ms]
-:   Range (min … max):    20.8 ms …  43.0 ms    112 runs
+: Benchmark 1: ./result-hbt-ocaml/bin/hbt --info ~/src/notes/all-2024.md
+:   Time (mean ± σ):      19.1 ms ±   1.1 ms    [User: 16.8 ms, System: 2.3 ms]
+:   Range (min … max):    18.3 ms …  26.2 ms    152 runs
 :  
 
 #+begin_src sh :results output
