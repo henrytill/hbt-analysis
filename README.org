@@ -1,48 +1,14 @@
-#+begin_src sh :results output
-  nix build ./hbt-go# -o result-hbt-go
-#+end_src
 
-#+RESULTS:
-
-#+begin_src sh :results output
-  nix build ./hbt-ocaml# -o result-hbt-ocaml
-#+end_src
-
-#+RESULTS:
-
-#+begin_src sh :results output
-  nix build ./hbt-rs# -o result-hbt-rs
-#+end_src
-
-#+RESULTS:
-
+* hbt-hs
+** Build
 #+begin_src sh :results output
   nix build ./hbt-hs# -o result-hbt-hs
 #+end_src
 
 #+RESULTS:
 
-#+begin_src sh :results output
-  ./result-hbt-go/bin/hbt -info ~/src/notes/all-2024.md
-#+end_src
-
-#+RESULTS:
-: Collection contains 1123 entities
-
-#+begin_src sh :results output
-  ./result-hbt-ocaml/bin/hbt --info ~/src/notes/all-2024.md
-#+end_src
-
-#+RESULTS:
-: /home/ht/src/notes/all-2024.md: 1123 entities
-
-#+begin_src sh :results output
-  ./result-hbt-rs/bin/hbt --info ~/src/notes/all-2024.md
-#+end_src
-
-#+RESULTS:
-: /home/ht/src/notes/all-2024.md: 1123 entities
-
+** Markdown
+*** Verify
 #+begin_src sh :results output
   ./result-hbt-hs/bin/hbt --info ~/src/notes/all-2024.md
 #+end_src
@@ -50,43 +16,181 @@
 #+RESULTS:
 : /home/ht/src/notes/all-2024.md: 1123 entities
 
-#+begin_src sh :results output
-  nix run nixpkgs#hyperfine -- --warmup 20 "./result-hbt-go/bin/hbt -info ~/src/notes/all-2024.md"
-#+end_src
-
-#+RESULTS:
-: Benchmark 1: ./result-hbt-go/bin/hbt -info ~/src/notes/all-2024.md
-:   Time (mean ± σ):       8.0 ms ±   0.9 ms    [User: 8.0 ms, System: 1.9 ms]
-:   Range (min … max):     7.3 ms …  12.3 ms    380 runs
-:  
-
-#+begin_src sh :results output
-  nix run nixpkgs#hyperfine -- --warmup 5 "./result-hbt-ocaml/bin/hbt --info ~/src/notes/all-2024.md"
-#+end_src
-
-#+RESULTS:
-: Benchmark 1: ./result-hbt-ocaml/bin/hbt --info ~/src/notes/all-2024.md
-:   Time (mean ± σ):      19.1 ms ±   1.1 ms    [User: 16.8 ms, System: 2.3 ms]
-:   Range (min … max):    18.3 ms …  26.2 ms    152 runs
-:  
-
-#+begin_src sh :results output
-  nix run nixpkgs#hyperfine -- --warmup 5 "./result-hbt-rs/bin/hbt --info ~/src/notes/all-2024.md"
-#+end_src
-
-#+RESULTS:
-: Benchmark 1: ./result-hbt-rs/bin/hbt --info ~/src/notes/all-2024.md
-:   Time (mean ± σ):       5.4 ms ±   1.0 ms    [User: 3.9 ms, System: 1.6 ms]
-:   Range (min … max):     4.5 ms …  11.6 ms    553 runs
-:  
-
+*** Bench
 #+begin_src sh :results output
   nix run nixpkgs#hyperfine -- --warmup 20 "./result-hbt-hs/bin/hbt --info ~/src/notes/all-2024.md"
 #+end_src
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-hs/bin/hbt --info ~/src/notes/all-2024.md
-:   Time (mean ± σ):     150.3 ms ±   4.1 ms    [User: 135.3 ms, System: 15.1 ms]
-:   Range (min … max):   145.5 ms … 158.7 ms    20 runs
+:   Time (mean ± σ):     149.1 ms ±   2.5 ms    [User: 134.9 ms, System: 14.2 ms]
+:   Range (min … max):   146.2 ms … 156.0 ms    20 runs
 :  
 
+** HTML
+*** Verify
+#+begin_src sh :results output
+  ./result-hbt-hs/bin/hbt --info ~/src/bookmarks/bookmarks.html
+#+end_src
+
+#+RESULTS:
+: /home/ht/src/bookmarks/bookmarks.html: 805 entities
+
+*** Bench
+#+begin_src sh :results output
+  nix run nixpkgs#hyperfine -- --warmup 20 "./result-hbt-hs/bin/hbt --info ~/src/bookmarks/bookmarks.html"
+#+end_src
+
+#+RESULTS:
+: Benchmark 1: ./result-hbt-hs/bin/hbt --info ~/src/bookmarks/bookmarks.html
+:   Time (mean ± σ):     503.4 ms ±   4.4 ms    [User: 459.2 ms, System: 44.7 ms]
+:   Range (min … max):   498.1 ms … 511.6 ms    10 runs
+:  
+
+* hbt-go
+** Build
+#+begin_src sh :results output
+  nix build ./hbt-go# -o result-hbt-go
+#+end_src
+
+#+RESULTS:
+
+** Markdown
+*** Verify
+#+begin_src sh :results output
+  ./result-hbt-go/bin/hbt -info ~/src/notes/all-2024.md
+#+end_src
+
+#+RESULTS:
+: Collection contains 1123 entities
+
+*** Bench
+#+begin_src sh :results output
+  nix run nixpkgs#hyperfine -- --warmup 20 "./result-hbt-go/bin/hbt -info ~/src/notes/all-2024.md"
+#+end_src
+
+#+RESULTS:
+: Benchmark 1: ./result-hbt-go/bin/hbt -info ~/src/notes/all-2024.md
+:   Time (mean ± σ):       8.0 ms ±   0.9 ms    [User: 7.7 ms, System: 2.2 ms]
+:   Range (min … max):     7.2 ms …  13.1 ms    374 runs
+:  
+
+** HTML
+*** Verify
+#+begin_src sh :results output
+  ./result-hbt-go/bin/hbt -info ~/src/bookmarks/bookmarks.html
+#+end_src
+
+#+RESULTS:
+: Collection contains 805 entities
+
+*** Bench
+#+begin_src sh :results output
+  nix run nixpkgs#hyperfine -- --warmup 20 "./result-hbt-go/bin/hbt -info ~/src/bookmarks/bookmarks.html"
+#+end_src
+
+#+RESULTS:
+: Benchmark 1: ./result-hbt-go/bin/hbt -info ~/src/bookmarks/bookmarks.html
+:   Time (mean ± σ):      14.6 ms ±   0.8 ms    [User: 14.8 ms, System: 3.3 ms]
+:   Range (min … max):    13.6 ms …  17.6 ms    203 runs
+:  
+
+* hbt-ocaml
+** Build
+#+begin_src sh :results output
+  nix build ./hbt-ocaml# -o result-hbt-ocaml
+#+end_src
+
+#+RESULTS:
+
+** Markdown
+*** Verify
+#+begin_src sh :results output
+  ./result-hbt-ocaml/bin/hbt --info ~/src/notes/all-2024.md
+#+end_src
+
+#+RESULTS:
+: /home/ht/src/notes/all-2024.md: 1123 entities
+
+*** Bench
+#+begin_src sh :results output
+  nix run nixpkgs#hyperfine -- --warmup 20 "./result-hbt-ocaml/bin/hbt --info ~/src/notes/all-2024.md"
+#+end_src
+
+#+RESULTS:
+: Benchmark 1: ./result-hbt-ocaml/bin/hbt --info ~/src/notes/all-2024.md
+:   Time (mean ± σ):      19.0 ms ±   0.6 ms    [User: 16.2 ms, System: 2.8 ms]
+:   Range (min … max):    18.4 ms …  22.5 ms    153 runs
+:  
+
+** HTML
+*** Verify
+#+begin_src sh :results output
+  ./result-hbt-ocaml/bin/hbt --info ~/src/bookmarks/bookmarks.html
+#+end_src
+
+#+RESULTS:
+: /home/ht/src/bookmarks/bookmarks.html: 805 entities
+
+*** Bench
+#+begin_src sh :results output
+  nix run nixpkgs#hyperfine -- --warmup 20 "./result-hbt-ocaml/bin/hbt --info ~/src/bookmarks/bookmarks.html"
+#+end_src
+
+#+RESULTS:
+: Benchmark 1: ./result-hbt-ocaml/bin/hbt --info ~/src/bookmarks/bookmarks.html
+:   Time (mean ± σ):     219.2 ms ±   3.6 ms    [User: 211.5 ms, System: 7.6 ms]
+:   Range (min … max):   214.2 ms … 223.8 ms    13 runs
+:  
+
+* hbt-rs
+** Build
+#+begin_src sh :results output
+  nix build ./hbt-rs# -o result-hbt-rs
+#+end_src
+
+#+RESULTS:
+
+** Markdown
+*** Verify
+#+begin_src sh :results output
+  ./result-hbt-rs/bin/hbt --info ~/src/notes/all-2024.md
+#+end_src
+
+#+RESULTS:
+: /home/ht/src/notes/all-2024.md: 1123 entities
+
+*** Bench
+#+begin_src sh :results output
+  nix run nixpkgs#hyperfine -- --warmup 20 "./result-hbt-rs/bin/hbt --info ~/src/notes/all-2024.md"
+#+end_src
+
+#+RESULTS:
+: Benchmark 1: ./result-hbt-rs/bin/hbt --info ~/src/notes/all-2024.md
+:   Time (mean ± σ):       5.8 ms ±   0.8 ms    [User: 4.3 ms, System: 1.5 ms]
+:   Range (min … max):     4.6 ms …  10.2 ms    476 runs
+:  
+
+** HTML
+*** Verify
+#+begin_src sh :results output
+  ./result-hbt-rs/bin/hbt --info ~/src/bookmarks/bookmarks.html
+#+end_src
+
+#+RESULTS:
+: /home/ht/src/bookmarks/bookmarks.html: 805 entities
+
+*** Bench
+#+begin_src sh :results output
+  nix run nixpkgs#hyperfine -- --warmup 20 "./result-hbt-rs/bin/hbt --info ~/src/bookmarks/bookmarks.html"
+#+end_src
+
+#+RESULTS:
+: Benchmark 1: ./result-hbt-rs/bin/hbt --info ~/src/bookmarks/bookmarks.html
+:   Time (mean ± σ):      14.1 ms ±   0.5 ms    [User: 10.4 ms, System: 3.6 ms]
+:   Range (min … max):    13.5 ms …  18.7 ms    208 runs
+:  
+
+# Local Variables:
+# org-confirm-babel-evaluate: nil
+# End:
