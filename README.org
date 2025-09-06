@@ -198,8 +198,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-ocaml/bin/hbt --info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml
-:   Time (mean ± σ):     101.1 ms ±   1.4 ms    [User: 93.6 ms, System: 7.4 ms]
-:   Range (min … max):    99.2 ms … 104.0 ms    29 runs
+:   Time (mean ± σ):      50.0 ms ±   1.0 ms    [User: 43.8 ms, System: 6.2 ms]
+:   Range (min … max):    49.0 ms …  55.0 ms    59 runs
 :  
 
 * hbt-rs
