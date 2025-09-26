@@ -226,8 +226,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-rs/bin/hbt --info ~/src/notes/all-2024.md
-:   Time (mean ± σ):       5.8 ms ±   0.8 ms    [User: 4.3 ms, System: 1.5 ms]
-:   Range (min … max):     4.6 ms …  10.2 ms    476 runs
+:   Time (mean ± σ):       5.0 ms ±   0.2 ms    [User: 3.9 ms, System: 1.2 ms]
+:   Range (min … max):     4.7 ms …   7.3 ms    512 runs
 :  
 
 ** HTML
@@ -246,13 +246,9 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-rs/bin/hbt --info ~/src/bookmarks/bookmarks.html
-:   Time (mean ± σ):      14.1 ms ±   0.5 ms    [User: 10.4 ms, System: 3.6 ms]
-:   Range (min … max):    13.5 ms …  18.7 ms    208 runs
+:   Time (mean ± σ):      14.2 ms ±   0.6 ms    [User: 10.5 ms, System: 3.7 ms]
+:   Range (min … max):    13.6 ms …  18.5 ms    201 runs
 :  
-
-# Local Variables:
-# org-confirm-babel-evaluate: nil
-# End:
 
 ** XML
 *** Verify
@@ -270,6 +266,10 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-rs/bin/hbt --info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml
-:   Time (mean ± σ):      10.6 ms ±   0.7 ms    [User: 8.2 ms, System: 2.4 ms]
-:   Range (min … max):     9.9 ms …  15.3 ms    287 runs
+:   Time (mean ± σ):      10.7 ms ±   0.4 ms    [User: 7.9 ms, System: 2.8 ms]
+:   Range (min … max):    10.2 ms …  14.5 ms    275 runs
 :  
+
+# Local Variables:
+# org-confirm-babel-evaluate: nil
+# End:
