@@ -23,8 +23,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-hs/bin/hbt --info ~/src/notes/all-2024.md
-:   Time (mean ± σ):     135.0 ms ±   1.6 ms    [User: 120.2 ms, System: 14.9 ms]
-:   Range (min … max):   132.8 ms … 137.9 ms    22 runs
+:   Time (mean ± σ):     133.7 ms ±   1.7 ms    [User: 119.2 ms, System: 14.6 ms]
+:   Range (min … max):   131.9 ms … 138.7 ms    22 runs
 :  
 
 ** HTML
@@ -43,8 +43,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-hs/bin/hbt --info ~/src/bookmarks/bookmarks.html
-:   Time (mean ± σ):      33.1 ms ±   0.5 ms    [User: 26.9 ms, System: 6.2 ms]
-:   Range (min … max):    32.5 ms …  34.9 ms    90 runs
+:   Time (mean ± σ):      32.0 ms ±   0.6 ms    [User: 25.9 ms, System: 6.1 ms]
+:   Range (min … max):    31.3 ms …  35.1 ms    91 runs
 :  
 
 ** XML
@@ -63,8 +63,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-hs/bin/hbt --info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml
-:   Time (mean ± σ):      85.4 ms ±   3.7 ms    [User: 73.2 ms, System: 12.3 ms]
-:   Range (min … max):    82.9 ms … 104.2 ms    35 runs
+:   Time (mean ± σ):      84.2 ms ±   1.1 ms    [User: 77.0 ms, System: 7.2 ms]
+:   Range (min … max):    82.9 ms …  89.5 ms    35 runs
 :  
 
 * hbt-go
@@ -246,8 +246,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-rs/bin/hbt --info ~/src/notes/all-2024.md
-:   Time (mean ± σ):       5.0 ms ±   0.2 ms    [User: 3.9 ms, System: 1.2 ms]
-:   Range (min … max):     4.7 ms …   7.3 ms    512 runs
+:   Time (mean ± σ):       5.5 ms ±   0.7 ms    [User: 3.9 ms, System: 1.6 ms]
+:   Range (min … max):     4.2 ms …   7.8 ms    601 runs
 :  
 
 ** HTML
@@ -266,8 +266,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-rs/bin/hbt --info ~/src/bookmarks/bookmarks.html
-:   Time (mean ± σ):      14.2 ms ±   0.6 ms    [User: 10.5 ms, System: 3.7 ms]
-:   Range (min … max):    13.6 ms …  18.5 ms    201 runs
+:   Time (mean ± σ):      14.1 ms ±   0.3 ms    [User: 10.3 ms, System: 3.7 ms]
+:   Range (min … max):    13.6 ms …  16.4 ms    201 runs
 :  
 
 ** XML
@@ -286,8 +286,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-rs/bin/hbt --info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml
-:   Time (mean ± σ):      10.7 ms ±   0.4 ms    [User: 7.9 ms, System: 2.8 ms]
-:   Range (min … max):    10.2 ms …  14.5 ms    275 runs
+:   Time (mean ± σ):      10.7 ms ±   0.8 ms    [User: 8.0 ms, System: 2.7 ms]
+:   Range (min … max):    10.0 ms …  15.6 ms    274 runs
 :  
 
 # Local Variables:
