@@ -91,8 +91,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-go/bin/hbt -info ~/src/notes/all-2024.md
-:   Time (mean ± σ):       8.0 ms ±   0.8 ms    [User: 8.1 ms, System: 1.8 ms]
-:   Range (min … max):     7.2 ms …  11.9 ms    363 runs
+:   Time (mean ± σ):       7.9 ms ±   0.4 ms    [User: 7.8 ms, System: 2.5 ms]
+:   Range (min … max):     7.4 ms …  10.6 ms    356 runs
 :  
 
 ** HTML
@@ -111,8 +111,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-go/bin/hbt -info ~/src/bookmarks/bookmarks.html
-:   Time (mean ± σ):      14.6 ms ±   0.8 ms    [User: 14.8 ms, System: 3.3 ms]
-:   Range (min … max):    13.6 ms …  17.6 ms    203 runs
+:   Time (mean ± σ):      14.1 ms ±   0.4 ms    [User: 14.8 ms, System: 3.4 ms]
+:   Range (min … max):    13.4 ms …  16.9 ms    206 runs
 :  
 
 ** XML
@@ -131,8 +131,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-go/bin/hbt -info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml
-:   Time (mean ± σ):      33.0 ms ±   4.7 ms    [User: 34.2 ms, System: 3.9 ms]
-:   Range (min … max):    27.4 ms …  49.5 ms    101 runs
+:   Time (mean ± σ):      29.6 ms ±   1.6 ms    [User: 32.9 ms, System: 3.2 ms]
+:   Range (min … max):    27.9 ms …  36.9 ms    101 runs
 :  
 
 * hbt-ocaml
