@@ -159,8 +159,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-ocaml/bin/hbt --info ~/src/notes/all-2024.md
-:   Time (mean ± σ):      21.3 ms ±   0.8 ms    [User: 18.1 ms, System: 3.2 ms]
-:   Range (min … max):    20.2 ms …  25.7 ms    140 runs
+:   Time (mean ± σ):      19.7 ms ±   0.9 ms    [User: 17.1 ms, System: 2.6 ms]
+:   Range (min … max):    19.1 ms …  26.2 ms    141 runs
 :  
 
 ** HTML
@@ -179,8 +179,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-ocaml/bin/hbt --info ~/src/bookmarks/bookmarks.html
-:   Time (mean ± σ):     231.1 ms ±   6.7 ms    [User: 221.5 ms, System: 9.5 ms]
-:   Range (min … max):   224.1 ms … 250.2 ms    12 runs
+:   Time (mean ± σ):     226.3 ms ±   8.5 ms    [User: 219.1 ms, System: 7.2 ms]
+:   Range (min … max):   216.7 ms … 246.8 ms    13 runs
 :  
 ** XML
 *** Verify
@@ -198,8 +198,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-ocaml/bin/hbt --info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml
-:   Time (mean ± σ):      53.4 ms ±   1.0 ms    [User: 45.2 ms, System: 8.1 ms]
-:   Range (min … max):    51.5 ms …  57.0 ms    54 runs
+:   Time (mean ± σ):      51.4 ms ±   2.2 ms    [User: 44.5 ms, System: 6.8 ms]
+:   Range (min … max):    49.2 ms …  62.5 ms    55 runs
 :  
 
 ** YAML
@@ -209,7 +209,7 @@
 #+end_src
 
 #+RESULTS:
-: /home/ht/src/bookmarks/pinboard_export.2023.10.31_02.11.yaml: 2799 entities
+: /home/ht/src/bookmarks/pinboard_export.2023.10.31_02.11.yaml: 2800 entities
 
 *** Bench
 #+begin_src sh :results output
@@ -218,8 +218,8 @@
 
 #+RESULTS:
 : Benchmark 1: ./result-hbt-ocaml/bin/hbt --info ~/src/bookmarks/pinboard_export.2023.10.31_02.11.yaml
-:   Time (mean ± σ):     128.0 ms ±   2.6 ms    [User: 118.7 ms, System: 9.3 ms]
-:   Range (min … max):   125.9 ms … 136.4 ms    23 runs
+:   Time (mean ± σ):     129.7 ms ±   3.6 ms    [User: 122.3 ms, System: 7.3 ms]
+:   Range (min … max):   124.9 ms … 140.9 ms    23 runs
 :  
 
 * hbt-rs
