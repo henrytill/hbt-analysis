@@ -92,7 +92,7 @@ def run(args: argparse.Namespace) -> int:
         raise core.BenchmarkError("no built implementations found; try --build")
     inputs = core.load_corpus(root, args.corpus or bench_dir / "corpus.toml")
     pairs = core.verify(impls, inputs)
-    core.benchmark(pairs, impls, inputs, args.warmup, args.min_runs)
+    core.benchmark(pairs, inputs, args.warmup, args.min_runs)
     data = core.collect(impls, inputs, pairs)
 
     output = args.output or bench_dir / "results.json"

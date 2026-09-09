@@ -14,7 +14,6 @@ them back, so a report can be regenerated without re-running anything.
 from __future__ import annotations
 
 import json
-import os
 import platform
 import re
 import shlex
@@ -23,7 +22,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -45,11 +44,6 @@ ENTITIES_RE = re.compile(r"(\d+)\s+entities")
 # push, and explicitly meant to be re-read later, so it gets the same
 # treatment rather than being read with bare subscripts forever.
 FORMAT_VERSION = "0.1.0"
-
-
-def _no_timing() -> dict[str, Any]:
-    """Named so the default_factory carries a type pyright can see."""
-    return {}
 
 
 class BenchmarkError(Exception):
@@ -76,18 +70,32 @@ class Input:
 
 @dataclass
 class Pair:
-    """One (implementation, input) cell of the matrix."""
+    """One (implementation, input) cell of the matrix.
 
-    impl: str
+    Carries the Impl rather than its name so benchmark() does not have to
+    rebuild a name-to-Impl index for state verify() already had in hand.
+    """
+
+    impl: Impl
     input: str
     entities: int | None = None
     error: str | None = None
-    timing: dict[str, Any] = field(default_factory=_no_timing)
+    timing: dict[str, Any] | None = None
 
     @property
     def ok(self) -> bool:
         """Whether this pair is still eligible to be benchmarked."""
         return self.error is None
+
+    def serialize(self) -> dict[str, Any]:
+        """The document's view of this cell."""
+        return {
+            "implementation": self.impl.name,
+            "input": self.input,
+            "entities": self.entities,
+            "error": self.error,
+            "timing": self.timing,
+        }
 
 
 def repo_root() -> Path:
@@ -118,10 +126,9 @@ def load_corpus(root: Path, path: Path) -> list[Input]:
         raise BenchmarkError(f"{path}: no such corpus file") from exc
     inputs: list[Input] = []
     for entry in data.get("input", []):
-        p = Path(os.path.expanduser(entry["path"]))
-        if not p.is_absolute():
-            p = root / p
-        inputs.append(Input(entry["name"], p))
+        # `/` returns the right operand when it is absolute, so this covers
+        # both the absolute and repo-relative cases.
+        inputs.append(Input(entry["name"], root / Path(entry["path"]).expanduser()))
     if not inputs:
         raise BenchmarkError(f"{path}: no [[input]] entries")
     return inputs
@@ -182,30 +189,30 @@ def verify(impls: list[Impl], inputs: list[Input]) -> list[Pair]:
     """Run --info once per pair, for the entity count and to prune what fails."""
     pairs: list[Pair] = []
     for inp in inputs:
+        # Depends only on the input, so it does not belong inside the per-impl
+        # loop where it pushed the interesting path two levels deeper.
+        if not inp.path.exists():
+            pairs += [Pair(impl, inp.name, error="input missing") for impl in impls]
+            continue
         for impl in impls:
-            pair = Pair(impl.name, inp.name)
-            if not inp.path.exists():
-                pair.error = "input missing"
+            pair = Pair(impl, inp.name)
+            out = subprocess.run(
+                [str(impl.binary), INFO_FLAG, str(inp.path)], capture_output=True, text=True, check=False
+            )
+            match = ENTITIES_RE.search(out.stdout) if out.returncode == 0 else None
+            if match:
+                pair.entities = int(match.group(1))
+            elif out.returncode == 0:
+                pair.error = "no entity count in --info output"
             else:
-                out = subprocess.run(
-                    [str(impl.binary), INFO_FLAG, str(inp.path)], capture_output=True, text=True, check=False
-                )
-                if out.returncode != 0:
-                    detail = (out.stderr or out.stdout).strip().splitlines()
-                    pair.error = detail[0] if detail else f"exit {out.returncode}"
-                else:
-                    match = ENTITIES_RE.search(out.stdout)
-                    if match:
-                        pair.entities = int(match.group(1))
-                    else:
-                        pair.error = "no entity count in --info output"
+                detail = (out.stderr or out.stdout).strip().splitlines()
+                pair.error = detail[0] if detail else f"exit {out.returncode}"
             pairs.append(pair)
     return pairs
 
 
-def benchmark(pairs: list[Pair], impls: list[Impl], inputs: list[Input], warmup: int, min_runs: int | None) -> None:
+def benchmark(pairs: list[Pair], inputs: list[Input], warmup: int, min_runs: int | None) -> None:
     """Time each input across every implementation that handled it."""
-    by_name = {i.name: i for i in impls}
     hyperfine = hyperfine_cmd()
     for inp in inputs:
         working = [p for p in pairs if p.input == inp.name and p.ok]
@@ -222,7 +229,7 @@ def benchmark(pairs: list[Pair], impls: list[Impl], inputs: list[Input], warmup:
             if min_runs:
                 cmd += ["--min-runs", str(min_runs)]
             for pair in working:
-                cmd += ["-n", pair.impl, shlex.join([str(by_name[pair.impl].binary), INFO_FLAG, str(inp.path)])]
+                cmd += ["-n", pair.impl.name, shlex.join([str(pair.impl.binary), INFO_FLAG, str(inp.path)])]
             print(f"benchmarking {inp.name} ...", file=sys.stderr)
             # hyperfine writes its progress display and summary to stdout, not
             # stderr. Send it to stderr so stdout carries nothing but the
@@ -231,14 +238,13 @@ def benchmark(pairs: list[Pair], impls: list[Impl], inputs: list[Input], warmup:
             with open(tmp.name, encoding="utf-8") as f:
                 results = {r["command"]: r for r in json.load(f)["results"]}
         for pair in working:
-            result = results.get(pair.impl)
+            result = results.get(pair.impl.name)
             if result is None:
                 pair.error = "no hyperfine result"
                 continue
-            pair.timing = {
-                k: result[k] for k in ("mean", "stddev", "median", "min", "max", "user", "system") if k in result
-            }
-            pair.timing["runs"] = len(result.get("times", []))
+            timing = {k: result[k] for k in ("mean", "stddev", "median", "min", "max", "user", "system") if k in result}
+            timing["runs"] = len(result.get("times", []))
+            pair.timing = timing
 
 
 def collect(impls: list[Impl], inputs: list[Input], pairs: list[Pair]) -> dict[str, Any]:
@@ -257,14 +263,5 @@ def collect(impls: list[Impl], inputs: list[Input], pairs: list[Pair]) -> dict[s
             {"name": i.name, "store_path": i.store_path, "version": i.version, "revision": i.revision} for i in impls
         ],
         "inputs": [{"name": i.name, "path": str(i.path)} for i in inputs],
-        "results": [
-            {
-                "implementation": p.impl,
-                "input": p.input,
-                "entities": p.entities,
-                "error": p.error,
-                "timing": p.timing or None,
-            }
-            for p in pairs
-        ],
+        "results": [p.serialize() for p in pairs],
     }
