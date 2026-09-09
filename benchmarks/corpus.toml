@@ -1,0 +1,26 @@
+# Benchmark corpus for scripts/benchmark.py.
+#
+# These are the author's private bookmark exports; they are in no repo and do
+# not exist in a fresh checkout. Point `path` wherever your own copies live, or
+# pass --corpus with a different file. Paths are expanded for `~` and taken
+# relative to the repository root.
+#
+# Every implementation is tried against every input. A pair that fails is
+# recorded as unsupported and excluded from the timings rather than aborting
+# the run, so this file does not need to know which parser handles what.
+
+[[input]]
+name = "markdown"
+path = "~/src/notes/all-2024.md"
+
+[[input]]
+name = "html"
+path = "~/src/bookmarks/bookmarks.html"
+
+[[input]]
+name = "xml"
+path = "~/src/bookmarks/pinboard_export.2023.10.31_02.11.xml"
+
+[[input]]
+name = "yaml"
+path = "~/src/bookmarks/pinboard_export.2023.10.31_02.11.yaml"

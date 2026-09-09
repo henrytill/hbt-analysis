@@ -1,0 +1,82 @@
+"""Command line interface."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from hbt_bench import __version__, core, report
+
+DESCRIPTION = "Benchmark the four hbt implementations against a shared corpus."
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Build the parser and parse `argv` (default: sys.argv)."""
+    parser = argparse.ArgumentParser(prog="hbt-bench", description=DESCRIPTION)
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument("--corpus", type=Path, help="corpus TOML (default: benchmarks/corpus.toml)")
+    parser.add_argument("-o", "--output", type=Path, help="results JSON (default: benchmarks/results.json)")
+    parser.add_argument("-r", "--report", type=Path, help="rendered report (default: benchmarks/report.md)")
+    parser.add_argument("--report-only", type=Path, metavar="RESULTS", help="re-render a saved results file")
+    parser.add_argument("--build", action="store_true", help="nix build each implementation first")
+    parser.add_argument("--impl", action="append", metavar="NAME", help="limit to this implementation (repeatable)")
+    parser.add_argument(
+        "--binary",
+        action="append",
+        metavar="NAME=PATH",
+        default=[],
+        help="use this binary for NAME instead of result-NAME/bin/hbt (repeatable)",
+    )
+    parser.add_argument("--warmup", type=int, default=20, help="hyperfine warmup runs (default: 20)")
+    parser.add_argument("--min-runs", type=int, help="hyperfine minimum runs (default: hyperfine's own)")
+    return parser.parse_args(argv)
+
+
+def parse_overrides(specs: list[str]) -> dict[str, Path]:
+    """Parse repeated --binary NAME=PATH arguments."""
+    overrides: dict[str, Path] = {}
+    for spec in specs:
+        name, sep, path = spec.partition("=")
+        if not sep or name not in core.IMPLEMENTATIONS:
+            raise core.BenchmarkError(f"--binary expects NAME=PATH with a known NAME, got {spec!r}")
+        overrides[name] = Path(path)
+    return overrides
+
+
+def run(args: argparse.Namespace) -> int:
+    """Run the benchmark (or just re-render) and write the outputs."""
+    root = core.repo_root()
+    bench_dir = root / "benchmarks"
+
+    if args.report_only:
+        with args.report_only.open(encoding="utf-8") as f:
+            data = json.load(f)
+    else:
+        names = args.impl or core.IMPLEMENTATIONS
+        unknown = set(names) - set(core.IMPLEMENTATIONS)
+        if unknown:
+            raise core.BenchmarkError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
+        overrides = parse_overrides(args.binary)
+        # --build refreshes the result-* symlinks, which an override bypasses.
+        if args.build:
+            core.build(root, [n for n in names if n not in overrides])
+        impls = core.discover(root, names, overrides)
+        if not impls:
+            raise core.BenchmarkError("no built implementations found; try --build")
+        inputs = core.load_corpus(root, args.corpus or bench_dir / "corpus.toml")
+        pairs = core.verify(impls, inputs)
+        core.benchmark(pairs, impls, inputs, args.warmup, args.min_runs)
+        data = core.collect(impls, inputs, pairs)
+
+        output = args.output or bench_dir / "results.json"
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        print(f"wrote {output}", file=sys.stderr)
+
+    report_path = args.report or bench_dir / "report.md"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(report.render(data), encoding="utf-8")
+    print(f"wrote {report_path}", file=sys.stderr)
+    return 0
