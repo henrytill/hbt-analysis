@@ -40,7 +40,7 @@ while read -r path; do
     branch=$(git -C "$path" ls-remote --symref origin HEAD \
         | awk '$1 == "ref:" { sub("refs/heads/", "", $2); print $2; exit }')
     if [ -z "$branch" ]; then
-        printf '%-10s cannot determine default branch, skipped\n' "$path" >&2
+        printf '%s: cannot determine default branch, skipped\n' "$path" >&2
         continue
     fi
 
@@ -48,12 +48,12 @@ while read -r path; do
     new=$(git -C "$path" rev-parse FETCH_HEAD)
 
     if [ "$old" = "$new" ]; then
-        printf '%-10s %s  already current (%s)\n' "$path" "${old:0:7}" "$branch"
+        printf '%s: %s  already current (%s)\n' "$path" "${old:0:7}" "$branch"
         continue
     fi
 
     count=$(git -C "$path" rev-list --count "$old..$new" 2> /dev/null || echo "?")
-    printf '%-10s %s -> %s  (%s, +%s commits)\n' \
+    printf '%s: %s -> %s  (%s, +%s commits)\n' \
         "$path" "${old:0:7}" "${new:0:7}" "$branch" "$count"
     changed=$((changed + 1))
 
