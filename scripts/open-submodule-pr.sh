@@ -21,8 +21,8 @@ summary=${1-}
 cd "$(git rev-parse --show-toplevel)"
 
 if git diff --cached --quiet; then
-    echo "nothing staged, no pull request to open"
-    exit 0
+	echo "nothing staged, no pull request to open"
+	exit 0
 fi
 
 # The date alone collides on a same-day rerun -- a workflow_dispatch retry,
@@ -34,11 +34,11 @@ branch="update-submodules/$(date -u +%Y-%m-%d-%H%M%S)"
 # An unreadable summary is an error, not an empty body: the list of what
 # moved is the whole point of the pull request.
 if [ -z "$summary" ]; then
-    printf '%s: no summary file given\n' "$0" >&2
-    exit 2
+	printf '%s: no summary file given\n' "$0" >&2
+	exit 2
 elif [ ! -s "$summary" ]; then
-    printf '%s: summary file %s is missing or empty\n' "$0" "$summary" >&2
-    exit 2
+	printf '%s: summary file %s is missing or empty\n' "$0" "$summary" >&2
+	exit 2
 fi
 body=$(cat "$summary")
 
@@ -51,7 +51,7 @@ git push -q origin "$branch"
 # a duplicate -- an expired token or an API outage must not report success.
 existing=$(gh pr list --head "$branch" --state open --json url --jq '.[0].url // empty')
 if [ -n "$existing" ]; then
-    printf 'a pull request already exists: %s\n' "$existing"
+	printf 'a pull request already exists: %s\n' "$existing"
 else
-    gh pr create --fill --head "$branch"
+	gh pr create --fill --head "$branch"
 fi
