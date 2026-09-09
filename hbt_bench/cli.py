@@ -30,20 +30,27 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=[],
         help="use this binary for NAME instead of result-NAME/bin/hbt (repeatable)",
     )
+    parser.add_argument(
+        "--revision",
+        action="append",
+        metavar="NAME=REV",
+        default=[],
+        help="record REV as the revision NAME's binary was built from (repeatable)",
+    )
     parser.add_argument("--warmup", type=int, default=20, help="hyperfine warmup runs (default: 20)")
     parser.add_argument("--min-runs", type=int, help="hyperfine minimum runs (default: hyperfine's own)")
     return parser.parse_args(argv)
 
 
-def parse_overrides(specs: list[str]) -> dict[str, Path]:
-    """Parse repeated --binary NAME=PATH arguments."""
-    overrides: dict[str, Path] = {}
+def parse_pairs(specs: list[str], flag: str, shape: str) -> dict[str, str]:
+    """Parse repeated NAME=VALUE arguments, validating NAME."""
+    parsed: dict[str, str] = {}
     for spec in specs:
-        name, sep, path = spec.partition("=")
+        name, sep, value = spec.partition("=")
         if not sep or name not in core.IMPLEMENTATIONS:
-            raise core.BenchmarkError(f"--binary expects NAME=PATH with a known NAME, got {spec!r}")
-        overrides[name] = Path(path)
-    return overrides
+            raise core.BenchmarkError(f"{flag} expects {shape} with a known NAME, got {spec!r}")
+        parsed[name] = value
+    return parsed
 
 
 def write_report(data: dict[str, Any], path: Path | None) -> int:
@@ -75,11 +82,12 @@ def run(args: argparse.Namespace) -> int:
     unknown = set(names) - set(core.IMPLEMENTATIONS)
     if unknown:
         raise core.BenchmarkError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
-    overrides = parse_overrides(args.binary)
+    overrides = {n: Path(v) for n, v in parse_pairs(args.binary, "--binary", "NAME=PATH").items()}
+    revisions = parse_pairs(args.revision, "--revision", "NAME=REV")
     # --build refreshes the result-* symlinks, which an override bypasses.
     if args.build:
         core.build(root, [n for n in names if n not in overrides])
-    impls = core.discover(root, names, overrides)
+    impls = core.discover(root, names, overrides, revisions)
     if not impls:
         raise core.BenchmarkError("no built implementations found; try --build")
     inputs = core.load_corpus(root, args.corpus or bench_dir / "corpus.toml")

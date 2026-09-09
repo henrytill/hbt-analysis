@@ -44,7 +44,7 @@ Every implementation is tried against every input. A pair that fails is recorded
 - **Entity counts** from `--info`, one row per input. A row where the four disagree is a parity bug, not a benchmark result.
 - **Timings**: mean wall time with standard deviation and the ratio to the fastest implementation on that row. hyperfine computes the ranking — each input is one hyperfine invocation naming all four commands, run with `-N` so shell startup is not part of the measurement.
 - **Unsupported** pairs, with the reason.
-- **Provenance**: the submodule revision and Nix store path behind every number.
+- **Provenance**: the Nix store path behind every number, the binary's own `--version` string, and — under `.#bench`, where it is known exactly — the revision it was built from.
 
 ### One source of truth
 
