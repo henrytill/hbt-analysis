@@ -129,7 +129,9 @@ This repo is the cross-language behavioral spec, so treat it accordingly:
   ```sh
   git submodule status --recursive
   ```
-  For the upstream side, compare against each project's default branch (`master` for all five, even though `hbt-hs` and `hbt-rs` are checked out here on `develop`):
+  Read that output carefully: the parenthetical is `git describe` against the submodule's own refs, not the branch it is on. All four are checked out detached at a pinned revision, so `(heads/master)` there means "this revision is also master's tip", and `(heads/master-4-gdd6a235)` means "four commits past master" — neither is a statement about a checked-out branch. `git -C <sub> rev-parse --abbrev-ref HEAD` is the question you actually want to ask.
+
+  For the upstream side, compare against each project's default branch (`master` for all five):
   ```sh
   gh api repos/henrytill/hbt-data/commits/master --jq '.sha[0:7]'
   for s in hbt-rs:test-data hbt-go:test/testdata hbt-ocaml:core/data hbt-hs:core/test/data; do
