@@ -5,7 +5,7 @@ This file provides guidance to coding agents working in this repository. `CLAUDE
 **Two rules that prevent most wasted moves here:**
 
 1. **Nothing works outside Nix.** There is no system-wide `cargo`, `go`, `dune`, `ghc`, or `cabal`. Enter a dev shell first: `cd hbt-rs && nix develop`.
-2. **Every submodule pointer is hand-bumped and routinely months stale**, in two layers. A failing golden test is more often an old pin than a parser bug — see [The shared test-data contract](#the-shared-test-data-contract-hbt-data).
+2. **Every submodule pointer goes stale**, in two layers. A failing golden test is more often an old pin than a parser bug — see [The shared test-data contract](#the-shared-test-data-contract-hbt-data). `scripts/update-submodules.sh -n` reports the drift in a few seconds.
 
 ## What this repository is
 
@@ -31,6 +31,8 @@ The root contains no source code. `README.org` is a literate org-babel benchmark
 Rebuild only when you have moved a pointer. They are gitignored Nix store paths.
 
 Work in this repo is usually *within* one submodule. Commits at the root are almost always submodule pointer bumps (`git add hbt-rs && git commit`), and changes to a submodule must be committed and pushed in that submodule's own repo first.
+
+To advance the four top-level pointers to their upstream default branches, run `scripts/update-submodules.sh` — `-n`/`--dry-run` reports what would move without touching anything. It stages the bumps and leaves them for you to review and commit; it reports and skips a submodule it cannot check out (a worktree left dirty by a local build), and exits non-zero if any were skipped. It also re-checkouts the nested `hbt-data` copies to whatever the new revisions pin, which is otherwise the step whose omission shows up as mass golden-test failures. A monthly workflow runs the same script and opens a pull request; that half lives in `scripts/open-submodule-pr.sh`, which refuses to run outside CI.
 
 ## Building and testing
 
