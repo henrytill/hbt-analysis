@@ -73,8 +73,12 @@ fi
 
 if [ "$changed" -eq 0 ]; then
     echo "all submodules current"
-elif $dry_run; then
-    printf '\n%s submodule(s) would be advanced; re-run without --dry-run\n' "$changed"
-else
-    printf '\n%s submodule(s) advanced and staged; review and commit\n' "$changed"
+    exit 0
 fi
+
+if $dry_run; then
+    outcome="would be advanced; re-run without --dry-run"
+else
+    outcome="advanced and staged; review and commit"
+fi
+printf '\n%s submodule(s) %s\n' "$changed" "$outcome"
