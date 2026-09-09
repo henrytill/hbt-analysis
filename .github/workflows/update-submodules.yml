@@ -19,17 +19,6 @@ jobs:
 
       - run: scripts/update-submodules.sh | tee summary.txt
 
-      - name: Open a pull request if anything moved
+      - run: scripts/open-submodule-pr.sh summary.txt
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          git diff --cached --quiet && { echo "nothing to do"; exit 0; }
-
-          branch="update-submodules/$(date -u +%Y-%m-%d)"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$branch"
-          git commit -q -m "Advance submodule pointers" -m "$(cat summary.txt)"
-          git push -q origin "$branch"
-          gh pr create --fill --head "$branch" || echo "a pull request already exists"
