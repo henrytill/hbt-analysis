@@ -78,6 +78,12 @@ def render(data: dict[str, Any]) -> str:
     ]
     lines += _table(["input"] + impls, _timing_rows(cells, impls, inputs))
 
+    unavailable = [i for i in data["implementations"] if i["error"]]
+    if unavailable:
+        lines += ["## Unavailable", ""]
+        lines += ["These implementations were not run at all, so their columns are blank throughout.", ""]
+        lines += _table(["implementation", "reason"], [[i["name"], i["error"]] for i in unavailable])
+
     failures = [r for r in data["results"] if r["error"]]
     if failures:
         lines += ["## Unsupported", ""]
@@ -88,7 +94,7 @@ def render(data: dict[str, Any]) -> str:
     lines += _table(
         ["implementation", "version", "revision", "store path"],
         [
-            [i["name"], i["version"] or "--", (i["revision"] or "--")[:7], i["store_path"]]
+            [i["name"], i["version"] or "--", (i["revision"] or "--")[:7], i["store_path"] or "--"]
             for i in data["implementations"]
         ],
     )

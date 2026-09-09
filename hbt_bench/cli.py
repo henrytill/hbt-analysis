@@ -88,7 +88,7 @@ def run(args: argparse.Namespace) -> int:
     if args.build:
         core.build(root, [n for n in names if n not in overrides])
     impls = core.discover(root, names, overrides, revisions)
-    if not impls:
+    if not any(i.available for i in impls):
         raise core.BenchmarkError("no built implementations found; try --build")
     inputs = core.load_corpus(root, args.corpus or bench_dir / "corpus.toml")
     pairs = core.verify(impls, inputs)
