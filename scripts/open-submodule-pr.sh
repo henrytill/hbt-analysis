@@ -25,7 +25,11 @@ if git diff --cached --quiet; then
     exit 0
 fi
 
-branch="update-submodules/$(date -u +%Y-%m-%d)"
+# The date alone collides on a same-day rerun -- a workflow_dispatch retry,
+# or a dispatch on the 1st when the cron also fires. The push would be
+# rejected as non-fast-forward before the already-exists check below could
+# help, so give each run its own branch.
+branch="update-submodules/$(date -u +%Y-%m-%d-%H%M%S)"
 
 # An unreadable summary is an error, not an empty body: the list of what
 # moved is the whole point of the pull request.
