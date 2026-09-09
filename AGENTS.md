@@ -4,7 +4,7 @@ This file provides guidance to coding agents working in this repository. `CLAUDE
 
 **Two rules that prevent most wasted moves here:**
 
-1. **Nothing works outside Nix.** There is no system-wide `cargo`, `go`, `dune`, `ghc`, or `cabal`. Enter a dev shell first: `cd hbt-rs && nix develop`.
+1. **Nothing works outside Nix.** There is no system-wide `cargo`, `go`, `dune`, `ghc`, or `cabal`. Enter a dev shell first: `cd hbt-rs && nix develop`. The root has one too, for the benchmark harness and the bash scripts.
 2. **Every submodule pointer goes stale**, in two layers. A failing golden test is more often an old pin than a parser bug — see [The shared test-data contract](#the-shared-test-data-contract-hbt-data). `scripts/update-submodules.sh -n` reports the drift in a few seconds.
 
 ## What this repository is
@@ -18,9 +18,11 @@ This file provides guidance to coding agents working in this repository. `CLAUDE
 | `hbt-ocaml` | OCaml (dune) | github.com/henrytill/hbt-ocaml |
 | `hbt-rs` | Rust (cargo workspace) | github.com/henrytill/hbt-rs |
 
-The root contains no source code. `README.org` is a literate org-babel benchmark notebook: it Nix-builds each implementation and records `--info` entity counts and `hyperfine` timings.
+The root holds one piece of source: `hbt_bench/`, the benchmark harness (Python, flit-packaged, `nix run .#bench`). It builds all four implementations from their own flakes, records `--info` entity counts, times each input across all four with `hyperfine`, and writes `benchmarks/results.json` plus a rendered `benchmarks/report.md`. `README.md` documents it. It replaced an org-babel notebook whose numbers carried no provenance.
 
-**You almost certainly cannot re-run it.** Its inputs (`~/src/notes/all-2024.md`, `~/src/bookmarks/*`) are private to the author's machine and are in no repo — they do not exist in a fresh checkout, so refreshing the benchmark table is not work an agent can do. Use the `hbt-data` fixtures for anything reproducible.
+**You almost certainly cannot re-run the real benchmark.** The corpus in `benchmarks/corpus.toml` points at the author's private bookmark exports (`~/src/notes/all-2024.md`, `~/src/bookmarks/*`); they are in no repo and do not exist in a fresh checkout, so refreshing the numbers is not work an agent can do. Point the corpus at the `hbt-data` fixtures for a smoke test — they exercise every code path but are far too small to time meaningfully.
+
+The four implementations are `git+file:` flake inputs of the root flake, which is what makes `.#bench` work end to end. That is a **third layer of pinning** on top of the gitlinks and each implementation's own `hbt-data` pin: after `scripts/update-submodules.sh` moves a pointer, `nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs` is needed for `.#bench` to build the new revisions. `path:` inputs would avoid the extra pin but cannot work — three of the four subflakes read `self.shortRev or self.dirtyShortRev`, and path inputs carry no git metadata. `inputs.self.submodules = true` is set so those relative inputs resolve from a copied source and not just in place; the `hbt-bench` derivation takes a `lib.fileset`-filtered `src`, so the submodule trees it pulls into `self` never reach the build.
 
 **The `result-hbt-*` symlinks are working binaries**, not just build output. Use them for any question about what an implementation *does* — it costs nothing and needs no Nix invocation:
 
@@ -161,3 +163,20 @@ There is no central tracker and no prose specification. Each implementation has 
 Match the submodule's own config, and never import conventions across languages. These formatters and linters are pinned by each flake and exist only inside that project's dev shell.
 
 Each submodule carries its own: `.ocamlformat` plus `.prettierrc.cjs` for the JS stubs in `hbt-ocaml/attic`; `fourmolu.yaml`, `.hlint.yaml`, and `weeder.toml` in `hbt-hs`; `rust-toolchain.toml` and `deny.toml` in `hbt-rs`; `make fmt` / `make lint` in `hbt-go`.
+
+### The root
+
+Python in `hbt_bench/` follows the same conventions as the author's other Python projects (`henrytill/pagewielder`, `henrytill/ananke-py`): flit-core build backend with `dynamic = ["version", "description"]`, black at **line-length 120**, isort with the black profile, flake8 (`.flake8`, `extend-ignore = E203`), mypy `strict`, pylint at 120 with a small disable list, and pyright `strict`. All of them are in the root dev shell, and all of them pass clean — keep it that way:
+
+```sh
+nix develop
+black hbt_bench && isort hbt_bench && flake8 hbt_bench && mypy hbt_bench && pylint hbt_bench && pyright hbt_bench
+```
+
+`hbt_bench/__init__.py` is checked in rather than generated: the sibling projects derive `__version__` from a `VERSION` file and the git ref via a `run.py`, and this package is a local tool that is never distributed, so it does not carry that machinery.
+
+Bash in `scripts/` uses **hard tabs, tab-width 8**. `shellcheck` and `shfmt` are in the root dev shell; the flag set that matches the existing style is:
+
+```sh
+shellcheck scripts/*.sh && shfmt -d -i 0 -sr -bn -ci scripts/*.sh
+```
