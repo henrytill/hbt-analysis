@@ -52,9 +52,18 @@ while read -r path; do
         continue
     fi
 
-    count=$(git -C "$path" rev-list --count "$old..$new" 2> /dev/null || echo "?")
-    printf '%s: %s -> %s  (%s, +%s commits)\n' \
-        "$path" "${old:0:7}" "${new:0:7}" "$branch" "$count"
+    # Both counts can fail on a shallow clone, where the old revision is not in
+    # local history. Treat that as "unknown" rather than as evidence of a
+    # rewind, so CI's shallow checkout does not cry wolf every month.
+    ahead=$(git -C "$path" rev-list --count "$old..$new" 2> /dev/null || echo "?")
+    behind=$(git -C "$path" rev-list --count "$new..$old" 2> /dev/null || echo 0)
+    if [ "$behind" != 0 ]; then
+        detail="+$ahead -$behind commits, NOT a fast-forward"
+    else
+        detail="+$ahead commits"
+    fi
+    printf '%s: %s -> %s  (%s, %s)\n' \
+        "$path" "${old:0:7}" "${new:0:7}" "$branch" "$detail"
     changed=$((changed + 1))
 
     if ! $dry_run; then
