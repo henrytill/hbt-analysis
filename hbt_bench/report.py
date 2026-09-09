@@ -80,8 +80,11 @@ def render(data: dict[str, Any]) -> str:
 
     lines += ["## Provenance", ""]
     lines += _table(
-        ["implementation", "revision", "store path"],
-        [[i["name"], (i["revision"] or "?")[:7], i["store_path"] or "?"] for i in data["implementations"]],
+        ["implementation", "version", "revision", "store path"],
+        [
+            [i["name"], i["version"] or "--", (i["revision"] or "--")[:7], i["store_path"]]
+            for i in data["implementations"]
+        ],
     )
     lines += _table(["input", "path"], [[i["name"], i["path"]] for i in data["inputs"]])
 

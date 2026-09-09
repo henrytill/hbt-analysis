@@ -88,8 +88,8 @@
           ''
             makeWrapper ${makeHbtBench pkgs}/bin/hbt-bench $out/bin/hbt-bench \
               ${pkgs.lib.concatMapStringsSep " " (name: ''
-                --set HBT_BENCH_${pkgs.lib.toUpper (builtins.replaceStrings [ "-" ] [ "_" ] name)} \
-                  ${inputs.${name}.packages.${system}.default}/bin/hbt \
+                --add-flags "--binary ${name}=${inputs.${name}.packages.${system}.default}/bin/hbt" \
+                --add-flags "--revision ${name}=${inputs.${name}.rev}" \
               '') names}
           '';
       # The published page. Built rather than committed, in the shape atp uses:

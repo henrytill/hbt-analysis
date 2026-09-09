@@ -53,7 +53,11 @@ class BenchmarkError(Exception):
 class Impl:
     name: str
     binary: Path
-    store_path: str | None
+    store_path: str
+    # What the binary says about itself, verbatim; None if it has no --version.
+    version: str | None
+    # Only ever set from a source that knows which build this is -- the flake
+    # wrapper passes the rev of the input it built. Never guessed.
     revision: str | None
 
 
@@ -123,45 +127,41 @@ def build(root: Path, names: list[str]) -> None:
         subprocess.run(["nix", "build", f"./{name}#", "-o", f"result-{name}"], cwd=root, check=True)
 
 
-def env_var(name: str) -> str:
-    """The environment variable that overrides one implementation's binary."""
-    return "HBT_BENCH_" + name.upper().replace("-", "_")
+def self_reported_version(binary: Path) -> str | None:
+    """What `binary --version` prints, or None if it does not support it."""
+    out = subprocess.run([str(binary), "--version"], capture_output=True, text=True, check=False)
+    if out.returncode != 0:
+        return None
+    first = out.stdout.strip().splitlines()
+    return first[0] if first else None
 
 
-def discover(root: Path, names: list[str], overrides: dict[str, Path] | None = None) -> list[Impl]:
-    """Find the built binaries, and record which build each one is.
+def discover(root: Path, names: list[str], overrides: dict[str, Path], revisions: dict[str, str]) -> list[Impl]:
+    """Find the built binaries, and record which build each one actually is.
 
-    Three sources, in order: an explicit --binary override, the HBT_BENCH_*
-    environment variable the root flake's wrapper sets, and finally the
-    `result-hbt-*` symlink for ad-hoc use outside the flake.
+    The binary comes from an explicit --binary override -- which is how the
+    root flake's wrapper points at what it built -- or otherwise from the
+    `result-hbt-*` symlink, for ad-hoc use outside the flake.
 
-    The store path and submodule revision are the provenance the org-babel
-    notebook never captured: a timing means nothing without knowing which build
-    produced it.
+    Provenance is taken from the artifact, never inferred from the working
+    tree.  The submodule's HEAD is *not* the revision of the binary: a
+    `result-*` symlink is whatever was last built there, and under the flake
+    the binary comes from flake.lock, which AGENTS.md documents as routinely
+    behind the gitlink.  Measured on this checkout, all three implementations
+    that support --version disagreed with their gitlink and one reported
+    -dirty.  So the store path (exact, from the binary itself) and the
+    binary's own --version string are recorded, and `revision` is set only
+    when a caller knows it authoritatively.
     """
     impls: list[Impl] = []
-    overrides = overrides or {}
     for name in names:
         link = root / f"result-{name}"
-        binary = overrides.get(name) or Path(os.environ.get(env_var(name), link / "bin" / "hbt"))
+        binary = overrides.get(name, link / "bin" / "hbt")
         if not binary.exists():
             print(f"{name}: no {binary}, skipped (nix build ./{name}# -o {link.name})", file=sys.stderr)
             continue
-        # Resolving gives the same provenance whichever of the three sources
-        # supplied the path: for the symlink it is what it points at, for the
-        # flake wrapper it is already a store path.
         store = str(binary.resolve().parent.parent)
-        rev = None
-        if (root / name).is_dir():
-            out = subprocess.run(
-                ["git", "-C", str(root / name), "rev-parse", "HEAD"],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            if out.returncode == 0:
-                rev = out.stdout.strip()
-        impls.append(Impl(name, binary, store, rev))
+        impls.append(Impl(name, binary, store, self_reported_version(binary), revisions.get(name)))
     return impls
 
 
@@ -238,7 +238,9 @@ def collect(impls: list[Impl], inputs: list[Input], pairs: list[Pair]) -> dict[s
             "system": platform.system(),
             "release": platform.release(),
         },
-        "implementations": [{"name": i.name, "store_path": i.store_path, "revision": i.revision} for i in impls],
+        "implementations": [
+            {"name": i.name, "store_path": i.store_path, "version": i.version, "revision": i.revision} for i in impls
+        ],
         "inputs": [{"name": i.name, "path": str(i.path)} for i in inputs],
         "results": [
             {
