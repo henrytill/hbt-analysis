@@ -1,0 +1,48 @@
+[build-system]
+requires = ["flit_core >=3.11,<5"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "hbt-bench"
+dynamic = ["version", "description"]
+readme = "README.md"
+authors = [{ name = "Henry Till", email = "henrytill@gmail.com" }]
+requires-python = ">=3.11"
+# Standard library only: tomllib for the corpus, json for hyperfine's export.
+# hyperfine itself is a runtime dependency, supplied by the flake.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["black>=23.3.0", "flake8>=6.0.0", "isort>=5.13.2", "mypy>=1.8.0", "pylint>=3.3.4"]
+test = []
+
+[project.scripts]
+hbt-bench = "hbt_bench.__main__:main"
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"
+known_first_party = ["hbt_bench"]
+line_length = 120
+
+[tool.mypy]
+strict = true
+check_untyped_defs = true
+warn_redundant_casts = false
+
+[tool.pylint]
+max-line-length = 120
+disable = [
+    "C0114", # missing-module-docstring, too much
+    "C0115", # missing-class-docstring, too much
+    "C0301", # line-too-long, we use black for formatting
+    "C0414", # useless-import-alias, we use aliases for type checking
+    "R0903", # too-few-public-methods, come on
+    "R0913", # too-many-arguments, i know
+    "R0917", # too-many-positional-arguments, you already told me thanks
+]
+
+[tool.pyright]
+strict = ["hbt_bench"]
