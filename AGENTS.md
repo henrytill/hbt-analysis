@@ -18,7 +18,7 @@ This file provides guidance to coding agents working in this repository. `CLAUDE
 | `hbt-ocaml` | OCaml (dune) | github.com/henrytill/hbt-ocaml |
 | `hbt-rs` | Rust (cargo workspace) | github.com/henrytill/hbt-rs |
 
-The root holds one piece of source: `hbt_bench/`, the benchmark harness (Python, flit-packaged, `nix run .#bench`). It builds all four implementations from their own flakes, records `--info` entity counts, times each input across all four with `hyperfine`, and writes `benchmarks/results.json` plus a rendered `benchmarks/report.md`. `README.md` documents it. `nix build .#site` renders the committed `benchmarks/results.json` into a standalone HTML page under `share/doc/hbt-analysis/html/`, which `.github/workflows/pages.yml` deploys to GitHub Pages — the same shape `henrytill/atp` uses. **Nothing is ever timed in CI**; the workflow only renders results produced by a local run. It replaced an org-babel notebook whose numbers carried no provenance.
+The root holds one piece of source: `hbt_bench/`, the benchmark harness (Python, flit-packaged, `nix run .#bench`). It builds all four implementations from their own flakes, records `--info` entity counts, times each input across all four with `hyperfine`, and writes `benchmarks/results.json` — the one committed benchmark file. The Markdown report and the HTML page are both translations of it and are never committed: the report renders to stdout (or to `-r FILE`), and the page is a Nix build output. `README.md` documents it. `nix build .#site` renders the committed `benchmarks/results.json` into a standalone HTML page under `share/doc/hbt-analysis/html/`, which `.github/workflows/pages.yml` deploys to GitHub Pages — the same shape `henrytill/atp` uses. **Nothing is ever timed in CI**; the workflow only renders results produced by a local run. It replaced an org-babel notebook whose numbers carried no provenance.
 
 **You almost certainly cannot re-run the real benchmark.** The corpus in `benchmarks/corpus.toml` points at the author's private bookmark exports (`~/src/notes/all-2024.md`, `~/src/bookmarks/*`); they are in no repo and do not exist in a fresh checkout, so refreshing the numbers is not work an agent can do. Point the corpus at the `hbt-data` fixtures for a smoke test — they exercise every code path but are far too small to time meaningfully.
 
@@ -180,3 +180,7 @@ Bash in `scripts/` uses **hard tabs, tab-width 8**. `shellcheck` and `shfmt` are
 ```sh
 shellcheck scripts/*.sh && shfmt -d -i 0 -sr -bn -ci scripts/*.sh
 ```
+
+`flake.nix` is `nixfmt`-formatted (`nixfmt --check flake.nix`), also from the root dev shell.
+
+One trap in `flake.nix`: `builtins.pathExists ./benchmarks/results.json` evaluates against the *copied* flake source, which contains only what git tracks. An untracked `results.json` is invisible to `nix build .#site`, which will quietly render the placeholder instead. `git add` it before wondering why the page is empty.
