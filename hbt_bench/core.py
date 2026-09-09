@@ -52,14 +52,36 @@ class BenchmarkError(Exception):
 
 @dataclass
 class Impl:
+    """One implementation, whether or not a binary for it was found."""
+
     name: str
-    binary: Path
-    store_path: str
+    binary: Path | None = None
+    store_path: str | None = None
     # What the binary says about itself, verbatim; None if it has no --version.
-    version: str | None
+    version: str | None = None
     # Only ever set from a source that knows which build this is -- the flake
     # wrapper passes the rev of the input it built. Never guessed.
-    revision: str | None
+    revision: str | None = None
+    # Why there is no binary. An implementation that could not be found stays
+    # in the document as a column of blanks with a reason, the way a failed
+    # (implementation, input) pair does; dropping it would make a partial run
+    # indistinguishable from a complete one.
+    error: str | None = None
+
+    @property
+    def available(self) -> bool:
+        """Whether this implementation can actually be run."""
+        return self.binary is not None
+
+    def serialize(self) -> dict[str, Any]:
+        """The document's view of this implementation."""
+        return {
+            "name": self.name,
+            "store_path": self.store_path,
+            "version": self.version,
+            "revision": self.revision,
+            "error": self.error,
+        }
 
 
 @dataclass
@@ -178,7 +200,9 @@ def discover(root: Path, names: list[str], overrides: dict[str, Path], revisions
         link = root / f"result-{name}"
         binary = overrides.get(name, link / "bin" / "hbt")
         if not binary.exists():
-            print(f"{name}: no {binary}, skipped (nix build ./{name}# -o {link.name})", file=sys.stderr)
+            reason = f"no {binary} (nix build ./{name}# -o {link.name})"
+            print(f"{name}: {reason}", file=sys.stderr)
+            impls.append(Impl(name, error=reason))
             continue
         store = str(binary.resolve().parent.parent)
         impls.append(Impl(name, binary, store, self_reported_version(binary), revisions.get(name)))
@@ -188,13 +212,14 @@ def discover(root: Path, names: list[str], overrides: dict[str, Path], revisions
 def verify(impls: list[Impl], inputs: list[Input]) -> list[Pair]:
     """Run --info once per pair, for the entity count and to prune what fails."""
     pairs: list[Pair] = []
+    runnable = [i for i in impls if i.available]
     for inp in inputs:
         # Depends only on the input, so it does not belong inside the per-impl
         # loop where it pushed the interesting path two levels deeper.
         if not inp.path.exists():
-            pairs += [Pair(impl, inp.name, error="input missing") for impl in impls]
+            pairs += [Pair(impl, inp.name, error="input missing") for impl in runnable]
             continue
-        for impl in impls:
+        for impl in runnable:
             pair = Pair(impl, inp.name)
             out = subprocess.run(
                 [str(impl.binary), INFO_FLAG, str(inp.path)], capture_output=True, text=True, check=False
@@ -259,9 +284,7 @@ def collect(impls: list[Impl], inputs: list[Input], pairs: list[Pair]) -> dict[s
             "system": platform.system(),
             "release": platform.release(),
         },
-        "implementations": [
-            {"name": i.name, "store_path": i.store_path, "version": i.version, "revision": i.revision} for i in impls
-        ],
+        "implementations": [i.serialize() for i in impls],
         "inputs": [{"name": i.name, "path": str(i.path)} for i in inputs],
         "results": [p.serialize() for p in pairs],
     }
