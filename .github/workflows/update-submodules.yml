@@ -17,7 +17,10 @@ jobs:
         with:
           submodules: true
 
+      # `shell: bash` is not redundant: a bare `run:` uses `bash -e {0}`, which
+      # has no pipefail, so `tee` exiting 0 would mask a failed script.
       - run: scripts/update-submodules.sh | tee summary.txt
+        shell: bash
 
       - run: scripts/open-submodule-pr.sh summary.txt
         env:
