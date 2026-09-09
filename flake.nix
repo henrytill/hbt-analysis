@@ -94,6 +94,41 @@
                 '') names
               }
           '';
+      # The published page. Built rather than committed, in the shape atp uses:
+      # the HTML is a derivation output under share/doc, and CI only uploads and
+      # deploys it. Nothing is benchmarked in CI -- shared, throttled runners
+      # are not a benchmarking environment -- so this renders the results.json
+      # that was committed from a local run.
+      makeSite =
+        pkgs:
+        pkgs.runCommand "hbt-analysis-site"
+          {
+            nativeBuildInputs = [
+              (makeHbtBench pkgs)
+              pkgs.pandoc
+            ];
+          }
+          ''
+            mkdir -p $out/share/doc/hbt-analysis/html
+            ${
+              if builtins.pathExists ./benchmarks/results.json then
+                ''
+                  hbt-bench --report-only ${./benchmarks/results.json} > report.md
+                ''
+              else
+                # Keeps the page (and CI) green before the first local run has
+                # been committed, rather than failing evaluation on a missing file.
+                ''
+                  cat > report.md <<'NOTHING'
+                  # hbt benchmark
+
+                  No results have been committed yet. Run `nix run .#bench` on a quiet
+                  machine and commit `benchmarks/results.json`.
+                  NOTHING
+                ''
+            }
+            pandoc report.md               --defaults ${./benchmarks/defaults.yml}               --metadata "pagetitle=hbt benchmark"               --output $out/share/doc/hbt-analysis/html/index.html
+          '';
     in
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -103,6 +138,7 @@
       {
         packages.hbt-bench = makeHbtBench pkgs;
         packages.bench = makeBench pkgs system;
+        packages.site = makeSite pkgs;
         packages.default = self.packages.${system}.hbt-bench;
 
         apps.bench = {

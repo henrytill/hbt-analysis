@@ -1,0 +1,43 @@
+name: pages
+
+on:
+  push:
+    branches: ['master']
+  pull_request:
+    branches: ['master']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # No `submodules: true`: .#site renders a committed JSON file and never
+      # references the implementation flake inputs, so it builds fine with the
+      # submodule directories empty. Cloning four repos here would buy nothing.
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      # Renders benchmarks/results.json, which is committed from a local run.
+      # Nothing is benchmarked here: shared, throttled runners are not a
+      # benchmarking environment.
+      - run: nix build -L .#site
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: result/share/doc/hbt-analysis/html/
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/master'
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
