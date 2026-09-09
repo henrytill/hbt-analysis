@@ -31,6 +31,7 @@ esac
 cd "$(git rev-parse --show-toplevel)"
 
 changed=0
+failed=0
 
 while read -r path; do
     [ -n "$path" ] || continue
@@ -41,6 +42,7 @@ while read -r path; do
         | awk '$1 == "ref:" { sub("refs/heads/", "", $2); print $2; exit }')
     if [ -z "$branch" ]; then
         printf '%s: cannot determine default branch, skipped\n' "$path" >&2
+        failed=$((failed + 1))
         continue
     fi
 
@@ -64,12 +66,22 @@ while read -r path; do
     fi
     printf '%s: %s -> %s  (%s, %s)\n' \
         "$path" "${old:0:7}" "${new:0:7}" "$branch" "$detail"
-    changed=$((changed + 1))
 
-    if ! $dry_run; then
-        git -C "$path" checkout --quiet --detach "$new"
-        git add "$path"
+    if $dry_run; then
+        changed=$((changed + 1))
+        continue
     fi
+
+    # A submodule left dirty by a local build fails to check out. Report and
+    # skip it as the missing-branch case above does, rather than letting set -e
+    # abort the run with earlier submodules already staged and no summary.
+    if ! git -C "$path" checkout --quiet --detach "$new"; then
+        printf '%s: checkout failed, skipped (dirty worktree?)\n' "$path" >&2
+        failed=$((failed + 1))
+        continue
+    fi
+    git add "$path"
+    changed=$((changed + 1))
 done < <(git config --file .gitmodules --get-regexp '^submodule\..*\.path$' | cut -d' ' -f2)
 
 # Each implementation pins its own hbt-data revision. Advancing the outer
@@ -80,14 +92,19 @@ if [ "$changed" -gt 0 ] && ! $dry_run; then
     git submodule update --init --recursive --quiet
 fi
 
-if [ "$changed" -eq 0 ]; then
+if [ "$changed" -eq 0 ] && [ "$failed" -eq 0 ]; then
     echo "all submodules current"
-    exit 0
+elif [ "$changed" -eq 0 ]; then
+    echo "no submodules advanced"
+elif $dry_run; then
+    printf '\n%s submodule(s) would be advanced; re-run without --dry-run\n' "$changed"
+else
+    printf '\n%s submodule(s) advanced and staged\n' "$changed"
 fi
 
-if $dry_run; then
-    outcome="would be advanced; re-run without --dry-run"
-else
-    outcome="advanced and staged"
+# Exit non-zero on a partial run so CI does not open a pull request that
+# silently covers only some of the submodules.
+if [ "$failed" -gt 0 ]; then
+    printf '%s submodule(s) could not be updated\n' "$failed" >&2
+    exit 1
 fi
-printf '\n%s submodule(s) %s\n' "$changed" "$outcome"
