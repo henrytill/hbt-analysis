@@ -8,10 +8,10 @@
 # commit and push them. This is the half only CI wants.
 #
 # Usage:
-#   scripts/open-submodule-pr.sh [summary-file]
+#   scripts/open-submodule-pr.sh <summary-file>
 #
-# The summary file, if given, becomes the commit message body; pass the output
-# of update-submodules.sh. Requires the gh CLI with contents and pull-requests
+# The summary file becomes the commit message body; pass the output of
+# update-submodules.sh. Requires the gh CLI with contents and pull-requests
 # write access; the built-in GITHUB_TOKEN is enough.
 
 set -euo pipefail
@@ -27,11 +27,16 @@ fi
 
 branch="update-submodules/$(date -u +%Y-%m-%d)"
 
-if [ -n "$summary" ] && [ -r "$summary" ]; then
-    body=$(cat "$summary")
-else
-    body=""
+# An unreadable summary is an error, not an empty body: the list of what
+# moved is the whole point of the pull request.
+if [ -z "$summary" ]; then
+    printf '%s: no summary file given\n' "$0" >&2
+    exit 2
+elif [ ! -s "$summary" ]; then
+    printf '%s: summary file %s is missing or empty\n' "$0" "$summary" >&2
+    exit 2
 fi
+body=$(cat "$summary")
 
 git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
