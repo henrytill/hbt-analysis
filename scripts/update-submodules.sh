@@ -88,6 +88,6 @@ fi
 if $dry_run; then
     outcome="would be advanced; re-run without --dry-run"
 else
-    outcome="advanced and staged; review and commit"
+    outcome="advanced and staged"
 fi
 printf '\n%s submodule(s) %s\n' "$changed" "$outcome"
