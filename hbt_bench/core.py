@@ -211,7 +211,10 @@ def benchmark(pairs: list[Pair], impls: list[Impl], inputs: list[Input], warmup:
             for pair in working:
                 cmd += ["-n", pair.impl, shlex.join([str(by_name[pair.impl].binary), INFO_FLAG, str(inp.path)])]
             print(f"benchmarking {inp.name} ...", file=sys.stderr)
-            subprocess.run(cmd, check=True)
+            # hyperfine writes its progress display and summary to stdout, not
+            # stderr. Send it to stderr so stdout carries nothing but the
+            # report, and `hbt-bench > report.md` stays clean.
+            subprocess.run(cmd, check=True, stdout=sys.stderr)
             with open(tmp.name, encoding="utf-8") as f:
                 results = {r["command"]: r for r in json.load(f)["results"]}
         for pair in working:
