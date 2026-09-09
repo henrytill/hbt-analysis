@@ -1,0 +1,11 @@
+# pandoc defaults for the published benchmark page.
+#
+# maxwidth is wider than the 40em that suits prose: the timings table runs to
+# roughly 96 columns, and wrapping it would defeat the point of publishing it.
+from: gfm
+to: html
+standalone: true
+highlight-style: null
+wrap: none
+variables:
+  maxwidth: 60em

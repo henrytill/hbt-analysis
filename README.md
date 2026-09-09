@@ -15,7 +15,7 @@ That builds all four implementations from their own flakes, runs the matrix, and
 ```sh
 nix run .#bench -- --warmup 50
 nix run .#bench -- --impl hbt-rs --impl hbt-go
-nix run .#bench -- --report-only benchmarks/results.json
+nix run .#bench -- --report-only benchmarks/results.json   # re-render to stdout
 ```
 
 Inside the dev shell, run it from the working tree so edits take effect. There it falls back to the `result-hbt-*` symlinks rather than building anything through the flake, so the numbers describe whatever those symlinks currently point at:
@@ -25,9 +25,13 @@ nix develop
 python -m hbt_bench --build          # --build refreshes the symlinks first
 ```
 
-### Run it locally
+### Run it locally, publish from CI
 
-CI is not a usable benchmarking environment — shared, throttled, noisy runners — so nothing here is wired into a workflow and there is no scheduled run keeping the numbers fresh. Regenerate them by hand on a quiet machine.
+CI is not a usable benchmarking environment — shared, throttled, noisy runners — so nothing is ever *timed* in a workflow. Regenerate the numbers by hand on a quiet machine and commit `benchmarks/results.json`.
+
+Rendering is a different matter, and that part is automated. `nix build .#site` turns the committed results into a standalone HTML page under `result/share/doc/hbt-analysis/html/`, and `.github/workflows/pages.yml` builds that and deploys it to GitHub Pages on every push to `master`. The HTML is a build output, not a committed file; `benchmarks/defaults.yml` holds the pandoc settings.
+
+Until a `results.json` has been committed the page renders a short placeholder, so the workflow is green from the start rather than failing on a missing file.
 
 ### The corpus
 
@@ -63,5 +67,5 @@ nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs
 | `hbt_bench/` | the benchmark harness (Python, flit) |
 | `benchmarks/` | corpus definition, results, and rendered report |
 | `scripts/` | submodule pointer maintenance (bash) |
-| `flake.nix` | the harness, the dev shell, and `.#bench` |
+| `flake.nix` | the harness, the dev shell, `.#bench`, and `.#site` |
 | `hbt-{hs,go,ocaml,rs}/` | the implementations, as submodules |
