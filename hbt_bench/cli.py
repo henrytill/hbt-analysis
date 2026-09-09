@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from hbt_bench import __version__, core, report
 
@@ -45,38 +46,50 @@ def parse_overrides(specs: list[str]) -> dict[str, Path]:
     return overrides
 
 
+def write_report(data: dict[str, Any], path: Path | None) -> int:
+    """Render `data` and write it, defaulting to stdout when no path is given."""
+    text = report.render(data)
+    if path is None:
+        sys.stdout.write(text)
+        return 0
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    print(f"wrote {path}", file=sys.stderr)
+    return 0
+
+
 def run(args: argparse.Namespace) -> int:
     """Run the benchmark (or just re-render) and write the outputs."""
+    if args.report_only:
+        # Deliberately before repo_root(): re-rendering must work outside a git
+        # checkout, because the Nix derivation that builds the published page
+        # does exactly that in the sandbox.
+        with args.report_only.open(encoding="utf-8") as f:
+            data = json.load(f)
+        return write_report(data, args.report)
+
     root = core.repo_root()
     bench_dir = root / "benchmarks"
 
-    if args.report_only:
-        with args.report_only.open(encoding="utf-8") as f:
-            data = json.load(f)
-    else:
-        names = args.impl or core.IMPLEMENTATIONS
-        unknown = set(names) - set(core.IMPLEMENTATIONS)
-        if unknown:
-            raise core.BenchmarkError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
-        overrides = parse_overrides(args.binary)
-        # --build refreshes the result-* symlinks, which an override bypasses.
-        if args.build:
-            core.build(root, [n for n in names if n not in overrides])
-        impls = core.discover(root, names, overrides)
-        if not impls:
-            raise core.BenchmarkError("no built implementations found; try --build")
-        inputs = core.load_corpus(root, args.corpus or bench_dir / "corpus.toml")
-        pairs = core.verify(impls, inputs)
-        core.benchmark(pairs, impls, inputs, args.warmup, args.min_runs)
-        data = core.collect(impls, inputs, pairs)
+    names = args.impl or core.IMPLEMENTATIONS
+    unknown = set(names) - set(core.IMPLEMENTATIONS)
+    if unknown:
+        raise core.BenchmarkError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
+    overrides = parse_overrides(args.binary)
+    # --build refreshes the result-* symlinks, which an override bypasses.
+    if args.build:
+        core.build(root, [n for n in names if n not in overrides])
+    impls = core.discover(root, names, overrides)
+    if not impls:
+        raise core.BenchmarkError("no built implementations found; try --build")
+    inputs = core.load_corpus(root, args.corpus or bench_dir / "corpus.toml")
+    pairs = core.verify(impls, inputs)
+    core.benchmark(pairs, impls, inputs, args.warmup, args.min_runs)
+    data = core.collect(impls, inputs, pairs)
 
-        output = args.output or bench_dir / "results.json"
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-        print(f"wrote {output}", file=sys.stderr)
+    output = args.output or bench_dir / "results.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    print(f"wrote {output}", file=sys.stderr)
 
-    report_path = args.report or bench_dir / "report.md"
-    report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(report.render(data), encoding="utf-8")
-    print(f"wrote {report_path}", file=sys.stderr)
-    return 0
+    return write_report(data, args.report or bench_dir / "report.md")
