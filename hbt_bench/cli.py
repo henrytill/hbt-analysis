@@ -19,7 +19,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--corpus", type=Path, help="corpus TOML (default: benchmarks/corpus.toml)")
     parser.add_argument("-o", "--output", type=Path, help="results JSON (default: benchmarks/results.json)")
-    parser.add_argument("-r", "--report", type=Path, help="rendered report (default: benchmarks/report.md)")
+    parser.add_argument("-r", "--report", type=Path, help="write the Markdown report here (default: stdout)")
     parser.add_argument("--report-only", type=Path, metavar="RESULTS", help="re-render a saved results file")
     parser.add_argument("--build", action="store_true", help="nix build each implementation first")
     parser.add_argument("--impl", action="append", metavar="NAME", help="limit to this implementation (repeatable)")
@@ -92,4 +92,7 @@ def run(args: argparse.Namespace) -> int:
     output.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {output}", file=sys.stderr)
 
-    return write_report(data, args.report or bench_dir / "report.md")
+    # No default path: results.json is the only file this leaves in the tree.
+    # Markdown and HTML are translations of it -- report.md goes to stdout
+    # unless asked for, and the HTML is produced by `nix build .#site`.
+    return write_report(data, args.report)
