@@ -10,12 +10,12 @@ This README used to be an org-babel notebook: one `#+begin_src sh` block per imp
 nix run .#bench
 ```
 
-That builds all four implementations from their own flakes, runs the matrix, and writes `benchmarks/results.json` plus `benchmarks/report.md`. Arguments are passed through:
+That builds all four implementations from their own flakes, runs the matrix, writes `benchmarks/results.json`, and prints the Markdown report. Arguments are passed through:
 
 ```sh
 nix run .#bench -- --warmup 50
 nix run .#bench -- --impl hbt-rs --impl hbt-go
-nix run .#bench -- --report-only benchmarks/results.json   # re-render to stdout
+nix run .#bench -- --report-only benchmarks/results.json   # re-render, no re-run
 ```
 
 Inside the dev shell, run it from the working tree so edits take effect. There it falls back to the `result-hbt-*` symlinks rather than building anything through the flake, so the numbers describe whatever those symlinks currently point at:
@@ -31,7 +31,7 @@ CI is not a usable benchmarking environment — shared, throttled, noisy runners
 
 Rendering is a different matter, and that part is automated. `nix build .#site` turns the committed results into a standalone HTML page under `result/share/doc/hbt-analysis/html/`, and `.github/workflows/pages.yml` builds that and deploys it to GitHub Pages on every push to `master`. The HTML is a build output, not a committed file; `benchmarks/defaults.yml` holds the pandoc settings.
 
-Until a `results.json` has been committed the page renders a short placeholder, so the workflow is green from the start rather than failing on a missing file.
+Until a `results.json` has been committed the page renders a short placeholder, so the workflow is green from the start rather than failing on a missing file. It has to be *committed*, not merely present: Nix builds from the git tree, so an untracked `results.json` is invisible and you get the placeholder.
 
 ### The corpus
 
@@ -46,7 +46,9 @@ Every implementation is tried against every input. A pair that fails is recorded
 - **Unsupported** pairs, with the reason.
 - **Provenance**: the submodule revision and Nix store path behind every number.
 
-`results.json` is the durable artifact and `--report-only` re-renders from it, so the report can be regenerated without re-running anything.
+### One source of truth
+
+`benchmarks/results.json` is the only benchmark file that is committed. Everything else is a translation of it: the Markdown report is rendered on demand (`--report-only`, to stdout unless `-r` names a file), and the HTML page is a Nix build output. Neither is ever written into the tree as a tracked file, so there is no derived copy to fall out of date with the numbers it came from.
 
 ## The root flake
 
