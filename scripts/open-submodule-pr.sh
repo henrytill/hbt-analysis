@@ -66,11 +66,4 @@ git \
 	-c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
 	commit -q -m "Advance submodule pointers" -m "$body"
 git push -q origin "$branch"
-# Ask whether a pull request exists rather than treating every gh failure as
-# a duplicate -- an expired token or an API outage must not report success.
-existing=$(gh pr list --head "$branch" --state open --json url --jq '.[0].url // empty')
-if [ -n "$existing" ]; then
-	printf 'a pull request already exists: %s\n' "$existing"
-else
-	gh pr create --fill --head "$branch"
-fi
+gh pr create --fill --head "$branch"
