@@ -87,20 +87,36 @@
           }
           ''
             makeWrapper ${makeHbtBench pkgs}/bin/hbt-bench $out/bin/hbt-bench \
-              ${
-                pkgs.lib.concatMapStringsSep " " (name: ''
-                  --set HBT_BENCH_${pkgs.lib.toUpper (builtins.replaceStrings [ "-" ] [ "_" ] name)} \
-                    ${inputs.${name}.packages.${system}.default}/bin/hbt \
-                '') names
-              }
+              ${pkgs.lib.concatMapStringsSep " " (name: ''
+                --set HBT_BENCH_${pkgs.lib.toUpper (builtins.replaceStrings [ "-" ] [ "_" ] name)} \
+                  ${inputs.${name}.packages.${system}.default}/bin/hbt \
+              '') names}
           '';
       # The published page. Built rather than committed, in the shape atp uses:
       # the HTML is a derivation output under share/doc, and CI only uploads and
       # deploys it. Nothing is benchmarked in CI -- shared, throttled runners
       # are not a benchmarking environment -- so this renders the results.json
-      # that was committed from a local run.
+      # that a local run committed.
+      results = ./benchmarks/results.json;
+
       makeSite =
         pkgs:
+        let
+          # Keeps the page (and CI) green before the first local run has been
+          # committed, rather than failing evaluation on a missing file.
+          placeholder = pkgs.writeText "no-results.md" ''
+            # hbt benchmark
+
+            No results have been committed yet. Run `nix run .#bench` on a quiet
+            machine and commit `benchmarks/results.json`.
+          '';
+          report =
+            if builtins.pathExists results then
+              "hbt-bench --report-only ${results} > report.md"
+            else
+              "cp ${placeholder} report.md";
+          defaults = ./benchmarks/defaults.yml;
+        in
         pkgs.runCommand "hbt-analysis-site"
           {
             nativeBuildInputs = [
@@ -109,25 +125,10 @@
             ];
           }
           ''
-            mkdir -p $out/share/doc/hbt-analysis/html
-            ${
-              if builtins.pathExists ./benchmarks/results.json then
-                ''
-                  hbt-bench --report-only ${./benchmarks/results.json} > report.md
-                ''
-              else
-                # Keeps the page (and CI) green before the first local run has
-                # been committed, rather than failing evaluation on a missing file.
-                ''
-                  cat > report.md <<'NOTHING'
-                  # hbt benchmark
-
-                  No results have been committed yet. Run `nix run .#bench` on a quiet
-                  machine and commit `benchmarks/results.json`.
-                  NOTHING
-                ''
-            }
-            pandoc report.md               --defaults ${./benchmarks/defaults.yml}               --metadata "pagetitle=hbt benchmark"               --output $out/share/doc/hbt-analysis/html/index.html
+            html=$out/share/doc/hbt-analysis/html
+            mkdir -p "$html"
+            ${report}
+            pandoc report.md --defaults ${defaults} --metadata "pagetitle=hbt benchmark" -o "$html/index.html"
           '';
     in
     flake-utils.lib.eachDefaultSystem (
@@ -152,6 +153,7 @@
           packages =
             (with pkgs; [
               hyperfine
+              nixfmt
               pyright
               shellcheck
               shfmt
