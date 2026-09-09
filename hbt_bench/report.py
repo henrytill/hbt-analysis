@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from hbt_bench.core import FORMAT_VERSION, BenchmarkError
+
 Cells = dict[tuple[str, str], dict[str, Any]]
 
 
@@ -49,6 +51,9 @@ def _timing_rows(cells: Cells, impls: list[str], inputs: list[str]) -> list[list
 
 def render(data: dict[str, Any]) -> str:
     """Render a results document as Markdown."""
+    version = data.get("version")
+    if version != FORMAT_VERSION:
+        raise BenchmarkError(f"results format {version!r}, expected {FORMAT_VERSION!r}")
     impls = [i["name"] for i in data["implementations"]]
     inputs = [i["name"] for i in data["inputs"]]
     cells: Cells = {(r["implementation"], r["input"]): r for r in data["results"]}
@@ -56,7 +61,8 @@ def render(data: dict[str, Any]) -> str:
 
     lines: list[str] = ["# hbt benchmark", ""]
     lines += [
-        f"Generated {data['generated']} on {host['node']} ({host['machine']}, {host['system']} {host['release']}).",
+        f"Generated {data['generated']} on {host['node']} ({host['machine']}, {host['system']} {host['release']})"
+        + (f", with {data['hyperfine']}." if data.get("hyperfine") else "."),
         "",
     ]
 

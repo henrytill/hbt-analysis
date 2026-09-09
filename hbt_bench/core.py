@@ -39,6 +39,13 @@ IMPLEMENTATIONS = ["hbt-hs", "hbt-go", "hbt-ocaml", "hbt-rs"]
 INFO_FLAG = "--info"
 ENTITIES_RE = re.compile(r"(\d+)\s+entities")
 
+# Bumped when the shape of the results document changes incompatibly.  The
+# thing being benchmarked versions its own serialized Collection against
+# ^0.1.0; this file is committed, re-rendered by a Nix derivation on every
+# push, and explicitly meant to be re-read later, so it gets the same
+# treatment rather than being read with bare subscripts forever.
+FORMAT_VERSION = "0.1.0"
+
 
 def _no_timing() -> dict[str, Any]:
     """Named so the default_factory carries a type pyright can see."""
@@ -125,6 +132,12 @@ def build(root: Path, names: list[str]) -> None:
     for name in names:
         print(f"building {name} ...", file=sys.stderr)
         subprocess.run(["nix", "build", f"./{name}#", "-o", f"result-{name}"], cwd=root, check=True)
+
+
+def hyperfine_version() -> str | None:
+    """Which hyperfine produced the timings, for the same reason as the rest."""
+    out = subprocess.run(hyperfine_cmd() + ["--version"], capture_output=True, text=True, check=False)
+    return out.stdout.strip() or None if out.returncode == 0 else None
 
 
 def self_reported_version(binary: Path) -> str | None:
@@ -231,7 +244,9 @@ def benchmark(pairs: list[Pair], impls: list[Impl], inputs: list[Input], warmup:
 def collect(impls: list[Impl], inputs: list[Input], pairs: list[Pair]) -> dict[str, Any]:
     """Assemble the serializable results document."""
     return {
+        "version": FORMAT_VERSION,
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "hyperfine": hyperfine_version(),
         "host": {
             "node": platform.node(),
             "machine": platform.machine(),
