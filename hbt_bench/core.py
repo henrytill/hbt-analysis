@@ -5,7 +5,10 @@ first, to learn the entity count and to find out whether that implementation
 handles the format at all; a pair that fails is recorded as unsupported and
 left out of the timings instead of aborting the run. Then each input is
 benchmarked with a single hyperfine invocation naming every implementation that
-worked, so hyperfine computes the relative ranking itself.
+worked, so every command on a row is measured under the same conditions. The
+ratios in the report are not hyperfine's -- its summary goes to stderr and is
+discarded; report.py recomputes them from the exported means, a ratio being a
+presentation concern.
 
 The results are the durable artifact; rendering is a separate step that reads
 them back, so a report can be regenerated without re-running anything.
