@@ -173,6 +173,8 @@ nix develop
 black hbt_bench && isort hbt_bench && flake8 hbt_bench && mypy hbt_bench && pylint hbt_bench && pyright hbt_bench
 ```
 
+The set of implementations is read from `.gitmodules` at runtime, the same way `scripts/update-submodules.sh` and `scripts/open-submodule-pr.sh` do it — adding or removing a submodule needs no edit in `hbt_bench/`, and `flake.nix` derives the same set from its inputs. Report columns are sorted, so `.gitmodules` ordering does not leak into the output.
+
 `hbt_bench/__init__.py` is checked in rather than generated: the sibling projects derive `__version__` from a `VERSION` file and the git ref via a `run.py`, and this package is a local tool that is never distributed, so it does not carry that machinery.
 
 Bash in `scripts/` uses **hard tabs, tab-width 8**. `shellcheck` and `shfmt` are in the root dev shell; the flag set that matches the existing style is:

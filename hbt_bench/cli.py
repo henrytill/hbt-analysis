@@ -42,12 +42,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def parse_pairs(specs: list[str], flag: str, shape: str) -> dict[str, str]:
+def parse_pairs(specs: list[str], flag: str, shape: str, known: list[str]) -> dict[str, str]:
     """Parse repeated NAME=VALUE arguments, validating NAME."""
     parsed: dict[str, str] = {}
     for spec in specs:
         name, sep, value = spec.partition("=")
-        if not sep or name not in core.IMPLEMENTATIONS:
+        if not sep or name not in known:
             raise core.BenchmarkError(f"{flag} expects {shape} with a known NAME, got {spec!r}")
         parsed[name] = value
     return parsed
@@ -78,12 +78,13 @@ def run(args: argparse.Namespace) -> int:
     root = core.repo_root()
     bench_dir = root / "benchmarks"
 
-    names = args.impl or core.IMPLEMENTATIONS
-    unknown = set(names) - set(core.IMPLEMENTATIONS)
+    known = core.implementations(root)
+    names = args.impl or known
+    unknown = set(names) - set(known)
     if unknown:
         raise core.BenchmarkError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
-    overrides = {n: Path(v) for n, v in parse_pairs(args.binary, "--binary", "NAME=PATH").items()}
-    revisions = parse_pairs(args.revision, "--revision", "NAME=REV")
+    overrides = {n: Path(v) for n, v in parse_pairs(args.binary, "--binary", "NAME=PATH", known).items()}
+    revisions = parse_pairs(args.revision, "--revision", "NAME=REV", known)
     # --build refreshes the result-* symlinks, which an override bypasses.
     if args.build:
         core.build(root, [n for n in names if n not in overrides])
