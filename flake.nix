@@ -20,15 +20,26 @@
     # The four implementations, as inputs, so `nix run .#bench` builds them and
     # runs the whole matrix in one command.
     #
-    # git+file: rather than path:, which would be the lighter choice -- three of
-    # the four subflakes derive their version from `self.shortRev or
-    # self.dirtyShortRev`, and a path input carries no git metadata at all, so
-    # they fail to evaluate with "attribute 'dirtyShortRev' missing".
+    # These emit a deprecation warning: relative git+file: paths resolve against
+    # the process working directory rather than the flake, and NixOS/nix#12281
+    # says they will stop working. That issue prescribes a replacement --
+    # `inputs.self.submodules = true` (set below) plus a bare path literal,
+    # `hbt-rs.url = ./hbt-rs`. It was tried here and does not work: three of the
+    # four subflakes derive their version from `self.shortRev or
+    # self.dirtyShortRev`, and a path input carries no git metadata, so hbt-go
+    # fails to evaluate with "attribute 'dirtyShortRev' missing". Making that
+    # form usable means teaching the four upstreams to tolerate a revision-less
+    # self; until then this is the option that works. The nix maintainers say
+    # the warning may be ignored.
     #
-    # The cost is a third layer of pinning: the lock records a rev for each, on
-    # top of this repo's gitlinks and each implementation's own hbt-data pin.
-    # After scripts/update-submodules.sh moves a pointer, re-lock to match --
-    # `nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs`.
+    # The warning about not reading HEAD is separate and benign. Verified by
+    # detaching hbt-go three commits back and re-locking: nix recorded the
+    # checked-out revision, not master. It follows the gitlink correctly.
+    #
+    # The real cost is a third layer of pinning: the lock records a rev for
+    # each, on top of this repo's gitlinks and each implementation's own
+    # hbt-data pin. After scripts/update-submodules.sh moves a pointer, re-lock
+    # to match -- `nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs`.
     hbt-hs.url = "git+file:./hbt-hs";
     hbt-go.url = "git+file:./hbt-go";
     hbt-ocaml.url = "git+file:./hbt-ocaml";

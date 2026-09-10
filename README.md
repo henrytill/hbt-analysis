@@ -31,7 +31,7 @@ CI is not a usable benchmarking environment — shared, throttled, noisy runners
 
 Rendering is a different matter, and that part is automated. `nix build .#site` turns the committed results into a standalone HTML page under `result/share/doc/hbt-analysis/html/`, and `.github/workflows/pages.yml` builds that and deploys it to GitHub Pages on every push to `master`. The HTML is a build output, not a committed file; `benchmarks/defaults.yml` holds the pandoc settings.
 
-Until a `results.json` has been committed the page renders a short placeholder, so the workflow is green from the start rather than failing on a missing file. It has to be *committed*, not merely present: Nix builds from the git tree, so an untracked `results.json` is invisible and you get the placeholder.
+`results.json` has to be *committed*, not merely present: Nix builds from the git tree, so an untracked one is invisible and the page will not change.
 
 ### The corpus
 
@@ -60,7 +60,11 @@ The cost is a third layer of pinning. `flake.lock` records a rev for each implem
 nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs
 ```
 
-`inputs.self.submodules = true` is set, so `self` is the tree *with* the submodules rather than with four empty directories — without it the relative `git+file:` inputs resolve only because the flake happens to be evaluated in place, not from a copied source. It does not remove the need for `git+file:`, since it still gives a `path:` input no git metadata. The usual cost of setting it — every submodule tree landing in `src = self` — does not apply here: the `hbt-bench` derivation takes a `lib.fileset`-filtered source of just `hbt_bench/`, `pyproject.toml`, and this README, so it stays 44K and does not rebuild when a pointer moves.
+`inputs.self.submodules = true` is set, so `self` is the tree *with* the submodules rather than with four empty directories. The usual cost of setting it — every submodule tree landing in `src = self` — does not apply here: the `hbt-bench` derivation takes a `lib.fileset`-filtered source of just `hbt_bench/`, `pyproject.toml`, and this README, so it stays 44K and does not rebuild when a pointer moves.
+
+The `git+file:` inputs emit a deprecation warning ([NixOS/nix#12281](https://github.com/NixOS/nix/issues/12281)). That issue prescribes replacing them with `inputs.self.submodules = true` plus a bare path literal (`hbt-rs.url = ./hbt-rs`), which is half of what is already here — but the other half does not work: `hbt-go` then fails to evaluate with `attribute 'dirtyShortRev' missing`, because three of the four subflakes read their version out of `self`'s git metadata and a path input has none. Making the prescribed form usable means teaching the four upstreams to tolerate a revision-less `self`. Until then the warning is ignorable, which is also what the Nix maintainers say on that issue.
+
+The companion warning about not reading HEAD is benign: detaching `hbt-go` three commits back and re-locking records the checked-out revision, not `master`, so the inputs do follow the gitlinks.
 
 ## Layout
 

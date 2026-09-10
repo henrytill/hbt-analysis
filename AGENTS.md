@@ -22,7 +22,7 @@ The root holds one piece of source: `hbt_bench/`, the benchmark harness (Python,
 
 **You almost certainly cannot re-run the real benchmark.** The corpus in `benchmarks/corpus.toml` points at the author's private bookmark exports (`~/src/notes/all-2024.md`, `~/src/bookmarks/*`); they are in no repo and do not exist in a fresh checkout, so refreshing the numbers is not work an agent can do. Point the corpus at the `hbt-data` fixtures for a smoke test — they exercise every code path but are far too small to time meaningfully.
 
-The four implementations are `git+file:` flake inputs of the root flake, which is what makes `.#bench` work end to end. That is a **third layer of pinning** on top of the gitlinks and each implementation's own `hbt-data` pin: after `scripts/update-submodules.sh` moves a pointer, `nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs` is needed for `.#bench` to build the new revisions. `path:` inputs would avoid the extra pin but cannot work — three of the four subflakes read `self.shortRev or self.dirtyShortRev`, and path inputs carry no git metadata. `inputs.self.submodules = true` is set so those relative inputs resolve from a copied source and not just in place; the `hbt-bench` derivation takes a `lib.fileset`-filtered `src`, so the submodule trees it pulls into `self` never reach the build.
+The four implementations are `git+file:` flake inputs of the root flake, which is what makes `.#bench` work end to end. That is a **third layer of pinning** on top of the gitlinks and each implementation's own `hbt-data` pin: after `scripts/update-submodules.sh` moves a pointer, `nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs` is needed for `.#bench` to build the new revisions. `path:` inputs would avoid the extra pin but cannot work — three of the four subflakes read `self.shortRev or self.dirtyShortRev`, and path inputs carry no git metadata, so `hbt-go` dies with `attribute 'dirtyShortRev' missing`. That also rules out the replacement [NixOS/nix#12281](https://github.com/NixOS/nix/issues/12281) prescribes for the deprecation warning these inputs emit (bare path literal + `inputs.self.submodules`), so **don't "fix" the warning** — it was tried, it fails, and the comment in `flake.nix` records why. Making it work is an upstream change in all four implementations. `inputs.self.submodules = true` is set; the `hbt-bench` derivation takes a `lib.fileset`-filtered `src`, so the submodule trees it pulls into `self` never reach the build.
 
 **The `result-hbt-*` symlinks are working binaries**, not just build output. Use them for any question about what an implementation *does* — it costs nothing and needs no Nix invocation:
 
@@ -55,7 +55,7 @@ Each flake exposes a default plus per-binary and `-static` variants; `hbt-go` ex
 
 Static builds go through the `-static` attrs, **not** through a dev shell: `dune build --profile static` inside the `hbt-ocaml` shell fails to link (`cannot find -lm/-lpthread/-lc`) because the static profile needs the musl package set. Use `nix build ./hbt-ocaml#hbt-cli-static`.
 
-Only `hbt-ocaml` and `hbt-rs` define flake `checks`; `nix flake check` is a no-op in the other two, whose CI runs `nix build` / `make` instead. `nix flake check ./hbt-rs# --no-build` reports what would run without running it.
+The root defines `checks.mypy`. Among the submodules only `hbt-ocaml` and `hbt-rs` define flake `checks`; `nix flake check` is a no-op in the other two, whose CI runs `nix build` / `make` instead. `nix flake check ./hbt-rs# --no-build` reports what would run without running it.
 
 ### Dev shells
 
@@ -183,4 +183,4 @@ shellcheck scripts/*.sh && shfmt -d -i 0 -sr -bn -ci scripts/*.sh
 
 `flake.nix` is `nixfmt`-formatted (`nixfmt --check flake.nix`), also from the root dev shell.
 
-One trap in `flake.nix`: `builtins.pathExists ./benchmarks/results.json` evaluates against the *copied* flake source, which contains only what git tracks. An untracked `results.json` is invisible to `nix build .#site`, which will quietly render the placeholder instead. `git add` it before wondering why the page is empty.
+One trap in `flake.nix`: it reads `./benchmarks/results.json` from the *copied* flake source, which contains only what git tracks. An untracked `results.json` is invisible to `nix build .#site`. `git add` it before wondering why the page did not change.
