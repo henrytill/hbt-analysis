@@ -46,7 +46,7 @@ Every implementation is tried against every input. A pair that fails is recorded
 - **Unavailable** implementations, which produced no results at all, and **Not benchmarked** pairs, with the reason each was left out.
 - **Provenance**: the Nix store path behind every number, the binary's own `--version` string, and — under `.#bench`, where it is known exactly — the revision it was built from.
 
-The tables are rendered with `tabulate`, the only runtime dependency. Cells are escaped first: a `|` in an error message or a path would otherwise start a new column and GFM would silently drop the overflow, which `tabulate` does not handle for you — nor does `pandas`, which renders its Markdown through it.
+The document is a Jinja template, `hbt_bench/report.md.j2` — the headings, the prose and which sections appear live there rather than in Python. The tables are rendered with `tabulate` and interpolated into it. Cells are escaped first: a `|` in an error message or a path would otherwise start a new column and GFM would silently drop the overflow, which `tabulate` does not handle for you — nor does `pandas`, which renders its Markdown through it.
 
 ### One source of truth
 
