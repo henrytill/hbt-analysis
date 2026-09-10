@@ -173,28 +173,37 @@
         apps.default = self.apps.${system}.bench;
 
         # A flake check rather than a build step, so mypy is not a build input
-        # of everything that consumes hbt-bench. The copy is because mypy needs
-        # the directory named for the package, and a store path is not.
-        # --explicit-package-bases rather than the pyproject setting of the same
-        # name: this invocation deliberately reads no config, so that the check
-        # is exactly --strict and not whatever [tool.mypy] currently relaxes.
-        # Without it mypy reads hbt/bench/cli.py as both `bench.cli` and
-        # `hbt.bench.cli` and refuses to go on.
+        # of everything that consumes hbt-bench.
+        #
+        # pyproject.toml is the one place this project's tool configuration
+        # lives, so the check reads it with --config-file rather than restating
+        # any of it here -- `strict` and `explicit_package_bases` both come from
+        # the file, and `mypy hbt/bench` in the dev shell is then the same check
+        # this runs. --config-file and not a copy next to the source, because
+        # mypy is happy to read config from anywhere.
+        #
+        # The source itself does have to be copied: explicit_package_bases makes
+        # the working directory the package root, so the tree has to sit at
+        # `hbt/bench` for the module to be `hbt.bench`, and a store path's
+        # basename is a hash. Copying ./hbt/bench rather than ./hbt for the same
+        # reason `src` above does -- a second member of the namespace would need
+        # its own dependencies in nativeBuildInputs, not this one's.
         checks.mypy =
           pkgs.runCommand "hbt-bench-mypy"
             {
               nativeBuildInputs = with pkgs.python3Packages; [
                 mypy
                 # jinja2 ships its own types, so it is the package; tabulate
-                # does not, so it is the stubs. --strict fails on an untyped
+                # does not, so it is the stubs. Strict mode fails on an untyped
                 # import either way.
                 jinja2
                 types-tabulate
               ];
             }
             ''
-              cp -r ${./hbt} hbt
-              mypy --strict --explicit-package-bases hbt
+              mkdir hbt
+              cp -r ${./hbt/bench} hbt/bench
+              mypy --config-file ${./pyproject.toml} hbt/bench
               touch $out
             '';
 
