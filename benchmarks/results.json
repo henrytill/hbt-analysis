@@ -1,0 +1,290 @@
+{
+  "version": "0.1.0",
+  "generated": "2026-09-09T21:27:05+00:00",
+  "hyperfine": "hyperfine 1.20.0",
+  "host": {
+    "node": "thalassa",
+    "machine": "x86_64",
+    "system": "Linux",
+    "release": "6.12.107+deb13-amd64"
+  },
+  "implementations": [
+    {
+      "name": "hbt-hs",
+      "store_path": "/nix/store/x3jbh7qqhqgrv12samp9s601ks99lrkm-hbt-cli-0.1.0.0",
+      "version": null,
+      "revision": "b9a8a04d31bb7554e9c37e1b1c29d2167965ad9c",
+      "error": null
+    },
+    {
+      "name": "hbt-go",
+      "store_path": "/nix/store/187pv161ygkjp33shg6dc96wjr0jr1bc-hbt-0.1.0-19ce2e8",
+      "version": "hbt 0.1.0-19ce2e8",
+      "revision": "19ce2e8925b69760a061e11f04ddbd4e31a597d2",
+      "error": null
+    },
+    {
+      "name": "hbt-ocaml",
+      "store_path": "/nix/store/qc65fjqbhvrkjp1l4cw5n0c5wa9l4d9z-hbt-cli-dev",
+      "version": "0.1.0-0d1df9f",
+      "revision": "0d1df9f4143008bfb6d663e34c4d8974f33d212f",
+      "error": null
+    },
+    {
+      "name": "hbt-rs",
+      "store_path": "/nix/store/381sxrrzl3lh5q6yfs18kk2sc8m5y1vf-hbt-0.1.0",
+      "version": "hbt 0.1.0 (d65635f)",
+      "revision": "d65635f85ce76d7f63852ef613d0db385d6a8620",
+      "error": null
+    }
+  ],
+  "inputs": [
+    {
+      "name": "markdown",
+      "path": "/home/ht/src/notes/all-2024.md"
+    },
+    {
+      "name": "html",
+      "path": "/home/ht/src/bookmarks/bookmarks.html"
+    },
+    {
+      "name": "xml",
+      "path": "/home/ht/src/bookmarks/pinboard_export.2023.10.31_02.11.xml"
+    },
+    {
+      "name": "yaml",
+      "path": "/home/ht/src/bookmarks/pinboard_export.2023.10.31_02.11.yaml"
+    }
+  ],
+  "results": [
+    {
+      "implementation": "hbt-hs",
+      "input": "markdown",
+      "entities": 1123,
+      "error": null,
+      "timing": {
+        "mean": 0.13915819000000001,
+        "stddev": 0.0019434003957441448,
+        "median": 0.139305319,
+        "min": 0.13585571200000002,
+        "max": 0.144985048,
+        "user": 0.1247387619047619,
+        "system": 0.014426380952380953,
+        "runs": 21
+      }
+    },
+    {
+      "implementation": "hbt-go",
+      "input": "markdown",
+      "entities": 1123,
+      "error": null,
+      "timing": {
+        "mean": 0.007769413528000005,
+        "stddev": 0.0009685203636676095,
+        "median": 0.007443052,
+        "min": 0.006825187000000001,
+        "max": 0.011769403000000001,
+        "user": 0.0074184133333333345,
+        "system": 0.0022657786666666663,
+        "runs": 375
+      }
+    },
+    {
+      "implementation": "hbt-ocaml",
+      "input": "markdown",
+      "entities": 1123,
+      "error": null,
+      "timing": {
+        "mean": 0.01998772458273381,
+        "stddev": 0.0008441418929507678,
+        "median": 0.019995052000000003,
+        "min": 0.018732435000000002,
+        "max": 0.024904039000000003,
+        "user": 0.016564604316546768,
+        "system": 0.0032783237410071954,
+        "runs": 139
+      }
+    },
+    {
+      "implementation": "hbt-rs",
+      "input": "markdown",
+      "entities": 1123,
+      "error": null,
+      "timing": {
+        "mean": 0.0047947798554817305,
+        "stddev": 0.00027236042048138384,
+        "median": 0.0047128825,
+        "min": 0.004406035,
+        "max": 0.007075495,
+        "user": 0.003143611295681064,
+        "system": 0.0015311677740863796,
+        "runs": 602
+      }
+    },
+    {
+      "implementation": "hbt-hs",
+      "input": "html",
+      "entities": 805,
+      "error": null,
+      "timing": {
+        "mean": 0.03336515963529412,
+        "stddev": 0.0011587918998659033,
+        "median": 0.033228204000000004,
+        "min": 0.031770882,
+        "max": 0.038436751000000005,
+        "user": 0.026614458823529412,
+        "system": 0.006622117647058823,
+        "runs": 85
+      }
+    },
+    {
+      "implementation": "hbt-go",
+      "input": "html",
+      "entities": 805,
+      "error": null,
+      "timing": {
+        "mean": 0.0159300622234637,
+        "stddev": 0.0012060342825440887,
+        "median": 0.015532701000000001,
+        "min": 0.014363078000000001,
+        "max": 0.020806838,
+        "user": 0.01607693854748602,
+        "system": 0.003610430167597765,
+        "runs": 179
+      }
+    },
+    {
+      "implementation": "hbt-ocaml",
+      "input": "html",
+      "entities": 805,
+      "error": null,
+      "timing": {
+        "mean": 0.23003926200000005,
+        "stddev": 0.013566130959715933,
+        "median": 0.2258523685,
+        "min": 0.218005474,
+        "max": 0.26750961300000003,
+        "user": 0.2201671666666667,
+        "system": 0.009643416666666665,
+        "runs": 12
+      }
+    },
+    {
+      "implementation": "hbt-rs",
+      "input": "html",
+      "entities": 805,
+      "error": null,
+      "timing": {
+        "mean": 0.01461907264795918,
+        "stddev": 0.0005073765678871938,
+        "median": 0.014490937500000002,
+        "min": 0.013869270000000001,
+        "max": 0.017250396,
+        "user": 0.010467540816326532,
+        "system": 0.0040152193877551045,
+        "runs": 196
+      }
+    },
+    {
+      "implementation": "hbt-hs",
+      "input": "xml",
+      "entities": 2799,
+      "error": null,
+      "timing": {
+        "mean": 0.122173207125,
+        "stddev": 0.0017850096509834682,
+        "median": 0.12164155200000001,
+        "min": 0.119184099,
+        "max": 0.12677454200000002,
+        "user": 0.10346745833333333,
+        "system": 0.018652416666666668,
+        "runs": 24
+      }
+    },
+    {
+      "implementation": "hbt-go",
+      "input": "xml",
+      "entities": 2799,
+      "error": null,
+      "timing": {
+        "mean": 0.028804999485148503,
+        "stddev": 0.0019510109471335814,
+        "median": 0.028347800000000003,
+        "min": 0.026049094000000002,
+        "max": 0.03614421,
+        "user": 0.030770504950495055,
+        "system": 0.0036487722772277236,
+        "runs": 101
+      }
+    },
+    {
+      "implementation": "hbt-ocaml",
+      "input": "xml",
+      "entities": 2799,
+      "error": null,
+      "timing": {
+        "mean": 0.04814177249180327,
+        "stddev": 0.001632965677765872,
+        "median": 0.047789849,
+        "min": 0.045578156,
+        "max": 0.054737237,
+        "user": 0.0444068524590164,
+        "system": 0.003573491803278688,
+        "runs": 61
+      }
+    },
+    {
+      "implementation": "hbt-rs",
+      "input": "xml",
+      "entities": 2799,
+      "error": null,
+      "timing": {
+        "mean": 0.011195386767716541,
+        "stddev": 0.0005330119438830368,
+        "median": 0.011038073,
+        "min": 0.010415288,
+        "max": 0.014467700000000002,
+        "user": 0.007983488188976375,
+        "system": 0.0030762952755905497,
+        "runs": 254
+      }
+    },
+    {
+      "implementation": "hbt-hs",
+      "input": "yaml",
+      "entities": null,
+      "error": "Error: no parser for file: /home/ht/src/bookmarks/pinboard_export.2023.10.31_02.11.yaml",
+      "timing": null
+    },
+    {
+      "implementation": "hbt-go",
+      "input": "yaml",
+      "entities": null,
+      "error": "Error: no parser for extension: .yaml",
+      "timing": null
+    },
+    {
+      "implementation": "hbt-ocaml",
+      "input": "yaml",
+      "entities": 2800,
+      "error": null,
+      "timing": {
+        "mean": 0.1327191197727273,
+        "stddev": 0.003806135059240607,
+        "median": 0.1318983175,
+        "min": 0.128789353,
+        "max": 0.14612360500000002,
+        "user": 0.12292013636363634,
+        "system": 0.009597227272727273,
+        "runs": 22
+      }
+    },
+    {
+      "implementation": "hbt-rs",
+      "input": "yaml",
+      "entities": null,
+      "error": "Error: No parser for file: /home/ht/src/bookmarks/pinboard_export.2023.10.31_02.11.yaml",
+      "timing": null
+    }
+  ]
+}
