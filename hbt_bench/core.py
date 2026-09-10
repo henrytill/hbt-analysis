@@ -27,10 +27,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-# The submodule directory name doubles as the implementation name and as the
-# `result-hbt-*` symlink suffix.
-IMPLEMENTATIONS = ["hbt-hs", "hbt-go", "hbt-ocaml", "hbt-rs"]
-
 # Go uses stdlib `flag`, which accepts the double-dashed spelling too, so one
 # invocation shape works everywhere. The reply text differs between
 # implementations -- Go prints "Collection contains N entities", the others
@@ -118,6 +114,32 @@ class Pair:
             "error": self.error,
             "timing": self.timing,
         }
+
+
+def implementations(root: Path) -> list[str]:
+    """The implementations, read from .gitmodules.
+
+    The submodule directory name doubles as the implementation name and as the
+    `result-hbt-*` symlink suffix, so .gitmodules is the one place that already
+    knows this.  scripts/update-submodules.sh and scripts/open-submodule-pr.sh
+    both read it the same way, deliberately, so that neither carries a list to
+    keep up to date.
+
+    Sorted, because .gitmodules is in the order entries happened to be added
+    and the report's column order should not be.
+    """
+    out = subprocess.run(
+        ["git", "config", "--file", str(root / ".gitmodules"), "--get-regexp", r"^submodule\..*\.path$"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if out.returncode != 0:
+        raise BenchmarkError(f"could not read {root / '.gitmodules'}")
+    names = sorted(line.split(" ", 1)[1] for line in out.stdout.splitlines() if " " in line)
+    if not names:
+        raise BenchmarkError(f"no submodules in {root / '.gitmodules'}")
+    return names
 
 
 def repo_root() -> Path:
