@@ -9,14 +9,20 @@ from hbt_bench.core import FORMAT_VERSION, BenchmarkError
 Cells = dict[tuple[str, str], dict[str, Any]]
 
 
-def _table(header: list[str], rows: list[list[str]], numeric: int = 0) -> list[str]:
+def _table(header: list[str], rows: list[list[str]], numeric: int | None = None) -> list[str]:
     """One aligned pipe table, followed by a blank line.
 
     Columns from `numeric` onward hold measurements and are right-aligned, in
     the text and via the GFM `--:` marker so the published HTML aligns them
     too. Digits that do not line up are much harder to compare down a column,
     which is the whole job of these tables.
+
+    None means no numeric columns, which is what a table of prose wants. It is
+    spelled that way rather than as a default of `len(header)`, which a default
+    expression cannot see.
     """
+    if numeric is None:
+        numeric = len(header)
     widths = [max([len(header[i])] + [len(r[i]) for r in rows]) for i in range(len(header))]
 
     def render_row(cells: list[str]) -> str:
