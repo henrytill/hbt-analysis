@@ -20,10 +20,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # No `submodules: true`: .#site renders a committed JSON file and never
-      # references the implementation flake inputs, so it builds fine with the
-      # submodule directories empty. Cloning four repos here would buy nothing.
+      # `submodules: true` even though .#site only renders a committed JSON
+      # file and builds no implementation. The flake still has to *lock* them:
+      # the inputs are relative `git+file:./hbt-*`, resolved against self, and
+      # every push gives self a new rev, so nix re-locks and fetches. With the
+      # submodule directories empty that fails with "Failed to fetch git
+      # repository 'file:./hbt-ocaml'". Not needed recursively -- locking wants
+      # the four trees, not the hbt-data each one pins.
       - uses: actions/checkout@v7
+        with:
+          submodules: true
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
