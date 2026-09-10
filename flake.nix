@@ -12,10 +12,6 @@
 
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
 
     # The four implementations, as inputs, so `nix run .#bench` builds them and
     # runs the whole matrix in one command.
