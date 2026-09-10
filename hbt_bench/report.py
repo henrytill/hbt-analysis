@@ -20,29 +20,35 @@ def _table(header: list[str], rows: list[list[str]]) -> list[str]:
     return [render_row(header), sep] + [render_row(r) for r in rows] + [""]
 
 
+def _row(cells: Cells, impls: list[str], name: str) -> list[dict[str, Any] | None]:
+    """One input's cells, looked up once each.
+
+    An implementation listed under "Unavailable" produced no results at all,
+    so a cell can legitimately be absent.
+    """
+    return [cells.get((impl, name)) for impl in impls]
+
+
 def _entity_rows(cells: Cells, impls: list[str], inputs: list[str]) -> list[list[str]]:
     rows: list[list[str]] = []
     for name in inputs:
-        row = [name]
-        for impl in impls:
-            result = cells.get((impl, name))
-            row.append("--" if result is None or result["entities"] is None else str(result["entities"]))
-        rows.append(row)
+        cell_values = _row(cells, impls, name)
+        rows.append([name] + ["--" if c is None or c["entities"] is None else str(c["entities"]) for c in cell_values])
     return rows
 
 
 def _timing_rows(cells: Cells, impls: list[str], inputs: list[str]) -> list[list[str]]:
     rows: list[list[str]] = []
     for name in inputs:
-        present = [cells[(i, name)]["timing"] for i in impls if cells.get((i, name)) and cells[(i, name)]["timing"]]
-        best = min((t["mean"] for t in present), default=None)
+        cell_values = _row(cells, impls, name)
+        timings = [c["timing"] for c in cell_values if c and c["timing"]]
+        best = min((t["mean"] for t in timings), default=None)
         row = [name]
-        for impl in impls:
-            result = cells.get((impl, name))
-            if not result or not result["timing"]:
+        for cell in cell_values:
+            if not cell or not cell["timing"]:
                 row.append("--")
                 continue
-            timing = result["timing"]
+            timing = cell["timing"]
             ratio = timing["mean"] / best if best else 1.0
             row.append(f"{timing['mean'] * 1000:.1f} ± {timing['stddev'] * 1000:.1f} ({ratio:.2f}x)")
         rows.append(row)
@@ -86,7 +92,13 @@ def render(data: dict[str, Any]) -> str:
 
     failures = [r for r in data["results"] if r["error"]]
     if failures:
-        lines += ["## Unsupported", ""]
+        lines += ["## Not benchmarked", ""]
+        lines += [
+            "Pairs excluded from the timings. A reason names what actually happened -- a missing input and a "
+            "parser that rejected the format are not the same thing, and neither is the harness failing to find "
+            "a count in output it did not recognise.",
+            "",
+        ]
         rows = [[f["implementation"], f["input"], f["error"]] for f in failures]
         lines += _table(["implementation", "input", "reason"], rows)
 
