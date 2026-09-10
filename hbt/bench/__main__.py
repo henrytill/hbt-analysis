@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 import sys
 
-from hbt_bench import cli, core
+from hbt.bench import cli, core
 
 
 def main() -> int:

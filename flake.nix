@@ -61,7 +61,7 @@
       # Derived from the inputs rather than restated: the implementations have
       # to be listed as inputs anyway, and a second literal list ten lines
       # below is one more thing to keep in sync. Order is irrelevant here --
-      # the report's column order comes from hbt_bench.core.
+      # the report's column order comes from hbt.bench.core.
       names = builtins.filter (nixpkgs.lib.hasPrefix "hbt-") (builtins.attrNames inputs);
     in
     flake-utils.lib.eachDefaultSystem (
@@ -90,7 +90,7 @@
           # the store path -- a provenance label, in a tool whose subject is
           # provenance -- go on claiming 0.1.0 after a bump.
           version = builtins.head (
-            builtins.match ".*__version__ = \"([^\"]+)\".*" (builtins.readFile ./hbt_bench/__init__.py)
+            builtins.match ".*__version__ = \"([^\"]+)\".*" (builtins.readFile ./hbt/bench/__init__.py)
           );
           pyproject = true;
           build-system = [ pkgs.python3Packages.flit-core ];
@@ -109,7 +109,7 @@
           src = pkgs.lib.fileset.toSource {
             root = ./.;
             fileset = pkgs.lib.fileset.unions [
-              ./hbt_bench
+              ./hbt
               ./pyproject.toml
               ./README.md
             ];
@@ -173,6 +173,8 @@
         # A flake check rather than a build step, so mypy is not a build input
         # of everything that consumes hbt-bench. The copy is because mypy needs
         # the directory named for the package, and a store path is not.
+        # pyproject.toml comes along for its explicit_package_bases, which the
+        # `hbt` namespace portion needs to resolve to one module name.
         checks.mypy =
           pkgs.runCommand "hbt-bench-mypy"
             {
@@ -186,8 +188,9 @@
               ];
             }
             ''
-              cp -r ${./hbt_bench} hbt_bench
-              mypy --strict hbt_bench
+              cp -r ${./hbt} hbt
+              cp ${./pyproject.toml} pyproject.toml
+              mypy --strict hbt
               touch $out
             '';
 

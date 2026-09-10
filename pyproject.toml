@@ -28,22 +28,35 @@ dev = [
 test = []
 
 [project.scripts]
-hbt-bench = "hbt_bench.__main__:main"
+hbt-bench = "hbt.bench.__main__:main"
+
+# `hbt` is a PEP 420 namespace portion -- it has no __init__.py -- so flit
+# cannot infer the module from the distribution name, which would give it
+# `hbt_bench`. The dotted name names the package inside the namespace.
+[tool.flit.module]
+name = "hbt.bench"
 
 [tool.black]
 line-length = 120
 
 [tool.isort]
 profile = "black"
-known_first_party = ["hbt_bench"]
+known_first_party = ["hbt"]
 line_length = 120
 
 [tool.mypy]
 strict = true
 check_untyped_defs = true
 warn_redundant_casts = false
+# `hbt` is a namespace portion with no __init__.py, so mypy cannot tell where
+# the package root is: it would read hbt/bench/cli.py as both `bench.cli` and
+# `hbt.bench.cli` and refuse. This makes the invocation directory the root.
+explicit_package_bases = true
 
 [tool.pylint]
+# The counterpart of mypy's explicit_package_bases: without it pylint reads
+# hbt/bench as the top-level module `bench` and cannot resolve `hbt.bench`.
+source-roots = ["."]
 max-line-length = 120
 disable = [
     "C0114", # missing-module-docstring, too much
@@ -56,4 +69,4 @@ disable = [
 ]
 
 [tool.pyright]
-strict = ["hbt_bench"]
+strict = ["hbt"]

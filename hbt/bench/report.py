@@ -7,7 +7,7 @@ from typing import Any
 from jinja2 import Environment, PackageLoader, StrictUndefined
 from tabulate import tabulate
 
-from hbt_bench.core import FORMAT_VERSION, BenchmarkError
+from hbt.bench.core import FORMAT_VERSION, BenchmarkError
 
 Cells = dict[tuple[str, str], dict[str, Any]]
 
@@ -111,7 +111,7 @@ def render(data: dict[str, Any]) -> str:
     # line itself: block tags are trimmed, and a section's spacing lives with
     # the section rather than being appended by the code that fills it.
     env = Environment(
-        loader=PackageLoader("hbt_bench", "."),
+        loader=PackageLoader("hbt.bench", "."),
         autoescape=False,  # nosec B701 - Markdown, not HTML; cells are escaped by _escape
         trim_blocks=True,
         lstrip_blocks=True,
