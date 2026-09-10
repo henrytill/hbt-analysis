@@ -42,7 +42,7 @@ Every implementation is tried against every input. A pair that fails is recorded
 ### What the report contains
 
 - **Entity counts** from `--info`, one row per input. A row where the four disagree is a parity bug, not a benchmark result.
-- **Timings**: mean wall time with standard deviation and the ratio to the fastest implementation on that row. hyperfine computes the ranking — each input is one hyperfine invocation naming all four commands, run with `-N` so shell startup is not part of the measurement.
+- **Timings**: mean wall time with standard deviation and the ratio to the fastest implementation on that row. Each input is one hyperfine invocation naming all four commands, so they are measured under the same conditions, and run with `-N` so shell startup is not part of the measurement. The ratios are computed by the renderer from the exported means; hyperfine's own summary goes to stderr and is discarded.
 - **Unavailable** implementations, which produced no results at all, and **Not benchmarked** pairs, with the reason each was left out.
 - **Provenance**: the Nix store path behind every number, the binary's own `--version` string, and — under `.#bench`, where it is known exactly — the revision it was built from.
 
