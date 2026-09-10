@@ -175,8 +175,11 @@
         # A flake check rather than a build step, so mypy is not a build input
         # of everything that consumes hbt-bench. The copy is because mypy needs
         # the directory named for the package, and a store path is not.
-        # pyproject.toml comes along for its explicit_package_bases, which the
-        # `hbt` namespace portion needs to resolve to one module name.
+        # --explicit-package-bases rather than the pyproject setting of the same
+        # name: this invocation deliberately reads no config, so that the check
+        # is exactly --strict and not whatever [tool.mypy] currently relaxes.
+        # Without it mypy reads hbt/bench/cli.py as both `bench.cli` and
+        # `hbt.bench.cli` and refuses to go on.
         checks.mypy =
           pkgs.runCommand "hbt-bench-mypy"
             {
@@ -191,8 +194,7 @@
             }
             ''
               cp -r ${./hbt} hbt
-              cp ${./pyproject.toml} pyproject.toml
-              mypy --strict hbt
+              mypy --strict --explicit-package-bases hbt
               touch $out
             '';
 
