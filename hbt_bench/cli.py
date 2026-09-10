@@ -52,16 +52,20 @@ def parse_pairs(specs: list[str], flag: str, shape: str, known: list[str]) -> di
     return parsed
 
 
-def write_report(data: dict[str, Any], path: Path | None) -> int:
+def write(path: Path, text: str) -> None:
+    """Write a file this run produced, and say where it went."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    print(f"wrote {path}", file=sys.stderr)
+
+
+def write_report(data: dict[str, Any], path: Path | None) -> None:
     """Render `data` and write it, defaulting to stdout when no path is given."""
     text = report.render(data)
     if path is None:
         sys.stdout.write(text)
-        return 0
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
-    print(f"wrote {path}", file=sys.stderr)
-    return 0
+        return
+    write(path, text)
 
 
 def run(args: argparse.Namespace) -> int:
@@ -70,7 +74,8 @@ def run(args: argparse.Namespace) -> int:
         # Deliberately before repo_root(): re-rendering must work outside a git
         # checkout, because the Nix derivation that builds the published page
         # does exactly that in the sandbox.
-        return write_report(core.load_results(args.report_only), args.report)
+        write_report(core.load_results(args.report_only), args.report)
+        return 0
 
     root = core.repo_root()
     bench_dir = root / "benchmarks"
@@ -101,11 +106,10 @@ def run(args: argparse.Namespace) -> int:
         raise core.BenchmarkError("nothing was benchmarked; check the corpus paths")
 
     output = args.output or bench_dir / "results.json"
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(core.dump_results(data), encoding="utf-8")
-    print(f"wrote {output}", file=sys.stderr)
+    write(output, core.dump_results(data))
 
     # No default path: results.json is the only file this leaves in the tree.
     # Markdown and HTML are translations of it -- report.md goes to stdout
     # unless asked for, and the HTML is produced by `nix build .#site`.
-    return write_report(data, args.report)
+    write_report(data, args.report)
+    return 0
