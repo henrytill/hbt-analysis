@@ -7,12 +7,14 @@ Generated {{ generated }} on {{ host.node }} ({{ host.machine }}, {{ host.system
 {{ entities }}
 
 A row that disagrees is a parity bug, not a benchmark result.
+{% if hyperfine %}
 
 ## Timings
 
 Mean wall time in milliseconds, plus or minus one standard deviation. `x` is the ratio to the fastest implementation on that row; `--` means the implementation did not handle the input.
 
 {{ timings }}
+{% endif %}
 {% if unavailable %}
 
 ## Unavailable

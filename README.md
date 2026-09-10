@@ -29,6 +29,14 @@ python -m hbt.bench --build          # --build refreshes the symlinks first
 
 CI is not a usable benchmarking environment — shared, throttled, noisy runners — so nothing is ever *timed* in a workflow. Regenerate the numbers by hand on a quiet machine and commit `benchmarks/results.json`.
 
+`--info-only` is the part of the harness that a workflow *can* run: it does the `--info` stage, records the entity counts, and skips hyperfine entirely, so it measures nothing and does not care how noisy the runner is. What it buys is the one cross-implementation check nothing else enforces — a row where the four disagree is a parity bug — against a corpus that exists in any checkout:
+
+```sh
+nix run .#bench -- --info-only --corpus benchmarks/fixtures.toml -o info.json
+```
+
+It requires `-o`. A document with no timings must never land on `benchmarks/results.json`, which is what the page publishes, so the flag refuses the default rather than relying on the caller to redirect it.
+
 Rendering is a different matter, and that part is automated. `nix build .#site` turns the committed results into a standalone HTML page under `result/share/doc/hbt-analysis/html/`, and `.github/workflows/pages.yml` builds that and deploys it to GitHub Pages on every push to `master`. The HTML is a build output, not a committed file; `benchmarks/defaults.yml` holds the pandoc settings.
 
 `results.json` has to be *committed*, not merely present: Nix builds from the git tree, so an untracked one is invisible and the page will not change.
