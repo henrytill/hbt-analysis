@@ -7,11 +7,14 @@ on:
     branches: ['master']
   workflow_dispatch:
 
-# A second push supersedes the first; without this both run a full cold-runner
-# build and the earlier deploy is overwritten moments after it lands.
+# A second push supersedes the first: queueing means it deploys after, not
+# alongside. Not cancel-in-progress, which this group would apply to the deploy
+# job as well -- cancelling actions/deploy-pages mid-deployment can leave the
+# Pages deployment stuck rather than simply superseded. GitHub's own Pages
+# starter workflow sets it false for the same reason.
 concurrency:
   group: pages-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
