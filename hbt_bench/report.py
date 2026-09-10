@@ -9,14 +9,27 @@ from hbt_bench.core import FORMAT_VERSION, BenchmarkError
 Cells = dict[tuple[str, str], dict[str, Any]]
 
 
-def _table(header: list[str], rows: list[list[str]]) -> list[str]:
-    """One aligned pipe table, followed by a blank line."""
+def _table(header: list[str], rows: list[list[str]], numeric: int = 0) -> list[str]:
+    """One aligned pipe table, followed by a blank line.
+
+    Columns from `numeric` onward hold measurements and are right-aligned, in
+    the text and via the GFM `--:` marker so the published HTML aligns them
+    too. Digits that do not line up are much harder to compare down a column,
+    which is the whole job of these tables.
+    """
     widths = [max([len(header[i])] + [len(r[i]) for r in rows]) for i in range(len(header))]
 
     def render_row(cells: list[str]) -> str:
-        return "| " + " | ".join(c.ljust(w) for c, w in zip(cells, widths)) + " |"
+        pad = [c.rjust(w) if i >= numeric else c.ljust(w) for i, (c, w) in enumerate(zip(cells, widths))]
+        return "| " + " | ".join(pad) + " |"
 
-    sep = "|" + "|".join(" " + "-" * w + " " for w in widths) + "|"
+    sep = (
+        "|"
+        + "|".join(
+            (" " + "-" * (w - 1) + ": ") if i >= numeric else (" " + "-" * w + " ") for i, w in enumerate(widths)
+        )
+        + "|"
+    )
     return [render_row(header), sep] + [render_row(r) for r in rows] + [""]
 
 
@@ -73,7 +86,7 @@ def render(data: dict[str, Any]) -> str:
     ]
 
     lines += ["## Entity counts", ""]
-    lines += _table(["input"] + impls, _entity_rows(cells, impls, inputs))
+    lines += _table(["input"] + impls, _entity_rows(cells, impls, inputs), numeric=1)
     lines += ["A row that disagrees is a parity bug, not a benchmark result.", ""]
 
     lines += ["## Timings", ""]
@@ -82,7 +95,7 @@ def render(data: dict[str, Any]) -> str:
         "implementation on that row; `--` means the implementation did not handle the input.",
         "",
     ]
-    lines += _table(["input"] + impls, _timing_rows(cells, impls, inputs))
+    lines += _table(["input"] + impls, _timing_rows(cells, impls, inputs), numeric=1)
 
     unavailable = [i for i in data["implementations"] if i["error"]]
     if unavailable:
