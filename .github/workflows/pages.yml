@@ -7,6 +7,12 @@ on:
     branches: ['master']
   workflow_dispatch:
 
+# A second push supersedes the first; without this both run a full cold-runner
+# build and the earlier deploy is overwritten moments after it lands.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,7 +29,11 @@ jobs:
       # benchmarking environment.
       - run: nix build -L .#site
 
+      # Only master deploys, so on a pull request this would tar and store an
+      # artifact nothing can consume. The build above is still worth running
+      # there as a check.
       - uses: actions/upload-pages-artifact@v5
+        if: github.ref == 'refs/heads/master'
         with:
           path: result/share/doc/hbt-analysis/html/
 
