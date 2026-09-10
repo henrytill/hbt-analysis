@@ -119,7 +119,7 @@ def run(args: argparse.Namespace) -> int:
     # errors. Under --info-only the timings are absent by construction, so the
     # entity counts are what has to be there instead.
     if args.info_only:
-        if not any(p.entities is not None for p in pairs):
+        if not any(p.ok for p in pairs):
             raise core.BenchmarkError("nothing was parsed; check the corpus paths")
     elif not any(p.timing for p in pairs):
         raise core.BenchmarkError("nothing was benchmarked; check the corpus paths")

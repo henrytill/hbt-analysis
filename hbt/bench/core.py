@@ -105,7 +105,7 @@ class Pair:
 
     @property
     def ok(self) -> bool:
-        """Whether this pair is still eligible to be benchmarked."""
+        """Whether --info succeeded, and so whether this pair can still be timed."""
         return self.error is None
 
     def serialize(self) -> dict[str, Any]:
