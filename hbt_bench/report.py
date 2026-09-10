@@ -4,9 +4,22 @@ from __future__ import annotations
 
 from typing import Any
 
+from tabulate import tabulate
+
 from hbt_bench.core import FORMAT_VERSION, BenchmarkError
 
 Cells = dict[tuple[str, str], dict[str, Any]]
+
+
+def _escape(cell: str) -> str:
+    r"""A cell is data, not markup.
+
+    An unescaped `|` in an error message or a path starts a new column, and
+    GFM then drops the overflow: `parse failed at a|b` published as `parse
+    failed at a`. tabulate does not do this for us -- nor does pandas, which
+    renders its Markdown through tabulate -- so it is done here.
+    """
+    return cell.replace("|", r"\|")
 
 
 def _table(header: list[str], rows: list[list[str]], numeric: int | None = None) -> list[str]:
@@ -23,16 +36,21 @@ def _table(header: list[str], rows: list[list[str]], numeric: int | None = None)
     """
     if numeric is None:
         numeric = len(header)
-    widths = [max([len(header[i])] + [len(r[i]) for r in rows]) for i in range(len(header))]
-
-    def render_row(cells: list[str]) -> str:
-        pad = [c.rjust(w) if i >= numeric else c.ljust(w) for i, (c, w) in enumerate(zip(cells, widths))]
-        return "| " + " | ".join(pad) + " |"
-
-    # The separator is a row like any other, so the column geometry is stated
-    # once: pad and join it the same way, and it cannot drift out of step.
-    dashes = ["-" * (w - 1) + ":" if i >= numeric else "-" * w for i, w in enumerate(widths)]
-    return [render_row(header), render_row(dashes)] + [render_row(r) for r in rows] + [""]
+    text = tabulate(
+        [[_escape(c) for c in row] for row in rows],
+        headers=[_escape(h) for h in header],
+        # "pipe", not "github": both are valid GFM, but github's separator is
+        # bare dashes, so colalign would show only in the padding and the
+        # published HTML would lose the alignment entirely. pipe emits the
+        # `--:` markers.
+        tablefmt="pipe",
+        colalign=tuple("right" if i >= numeric else "left" for i in range(len(header))),
+        # Every cell is already the string we mean to publish. Left on, this
+        # would re-format anything that parses as a number -- entity counts
+        # among them -- to tabulate's taste rather than ours.
+        disable_numparse=True,
+    )
+    return text.splitlines() + [""]
 
 
 def _row(cells: Cells, impls: list[str], name: str) -> list[dict[str, Any] | None]:

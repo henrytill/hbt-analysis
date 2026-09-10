@@ -94,6 +94,7 @@
           );
           pyproject = true;
           build-system = [ pkgs.python3Packages.flit-core ];
+          dependencies = [ pkgs.python3Packages.tabulate ];
           # The type check is a flake check, not a build step. Leaving it here
           # made mypy -- a ~70 MiB closure on top of python3 -- a build input of
           # every consumer, including the pages build, which only needs to run
@@ -170,7 +171,15 @@
         # of everything that consumes hbt-bench. The copy is because mypy needs
         # the directory named for the package, and a store path is not.
         checks.mypy =
-          pkgs.runCommand "hbt-bench-mypy" { nativeBuildInputs = [ pkgs.python3Packages.mypy ]; }
+          pkgs.runCommand "hbt-bench-mypy"
+            {
+              nativeBuildInputs = with pkgs.python3Packages; [
+                mypy
+                # The stubs, not tabulate itself: mypy only needs the types,
+                # and --strict fails on an untyped import.
+                types-tabulate
+              ];
+            }
             ''
               cp -r ${./hbt_bench} hbt_bench
               mypy --strict hbt_bench
@@ -193,6 +202,7 @@
               isort
               mypy
               pylint
+              types-tabulate
             ]);
         };
       }

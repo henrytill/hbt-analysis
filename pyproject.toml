@@ -8,9 +8,10 @@ dynamic = ["version", "description"]
 readme = "README.md"
 authors = [{ name = "Henry Till", email = "henrytill@gmail.com" }]
 requires-python = ">=3.11"
-# Standard library only: tomllib for the corpus, json for hyperfine's export.
-# hyperfine itself is a runtime dependency, supplied by the flake.
-dependencies = []
+# tabulate renders the report's tables; everything else is the standard
+# library, tomllib for the corpus and json for hyperfine's export. hyperfine
+# itself is a runtime dependency, supplied by the flake.
+dependencies = ["tabulate>=0.9.0"]
 
 [project.optional-dependencies]
 dev = ["black>=23.3.0", "flake8>=6.0.0", "isort>=5.13.2", "mypy>=1.8.0", "pylint>=3.3.4"]
