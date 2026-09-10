@@ -280,8 +280,14 @@ def verify(impls: list[Impl], inputs: list[Input]) -> list[Pair]:
     return pairs
 
 
-def benchmark(pairs: list[Pair], inputs: list[Input], warmup: int, min_runs: int | None) -> None:
-    """Time each input across every implementation that handled it."""
+def benchmark(pairs: list[Pair], inputs: list[Input], warmup: int, min_runs: int | None) -> str | None:
+    """Time each input across every implementation that handled it.
+
+    Returns the hyperfine that did it, asked once here rather than later from
+    collect(): this is the function that resolved the command, and outside a
+    dev shell resolving it again means a second `nix run` after the timings
+    are already done.
+    """
     hyperfine = hyperfine_cmd()
     for inp in inputs:
         working = [p for p in pairs if p.input == inp.name and p.ok]
@@ -325,14 +331,19 @@ def benchmark(pairs: list[Pair], inputs: list[Input], warmup: int, min_runs: int
             timing = {k: result[k] for k in ("mean", "stddev", "median", "min", "max", "user", "system") if k in result}
             timing["runs"] = len(result.get("times", []))
             pair.timing = timing
+    return reported_version(hyperfine)
 
 
-def collect(impls: list[Impl], inputs: list[Input], pairs: list[Pair]) -> dict[str, Any]:
-    """Assemble the serializable results document."""
+def collect(impls: list[Impl], inputs: list[Input], pairs: list[Pair], hyperfine: str | None) -> dict[str, Any]:
+    """Assemble the serializable results document.
+
+    Every input is passed in: this is a pure mapping from collected state to
+    the document, and nothing it records is discovered by running anything.
+    """
     return {
         "version": FORMAT_VERSION,
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "hyperfine": reported_version(hyperfine_cmd()),
+        "hyperfine": hyperfine,
         "host": {
             "node": platform.node(),
             "machine": platform.machine(),

@@ -90,8 +90,8 @@ def run(args: argparse.Namespace) -> int:
         raise core.BenchmarkError("no built implementations found; try --build")
     inputs = core.load_corpus(root, args.corpus or bench_dir / "corpus.toml")
     pairs = core.verify(impls, inputs)
-    core.benchmark(pairs, inputs, args.warmup, args.min_runs)
-    data = core.collect(impls, inputs, pairs)
+    hyperfine = core.benchmark(pairs, inputs, args.warmup, args.min_runs)
+    data = core.collect(impls, inputs, pairs, hyperfine)
 
     # A corpus none of whose inputs exist still produces a document, and that
     # document is what the Pages workflow publishes. Refuse to write one rather
