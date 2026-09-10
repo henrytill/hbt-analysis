@@ -95,6 +95,13 @@ def run(args: argparse.Namespace) -> int:
     core.benchmark(pairs, inputs, args.warmup, args.min_runs)
     data = core.collect(impls, inputs, pairs)
 
+    # A corpus none of whose inputs exist still produces a document, and that
+    # document is what the Pages workflow publishes. Refuse to write one rather
+    # than let a fresh checkout quietly overwrite real numbers with a grid of
+    # errors.
+    if not any(p.timing for p in pairs):
+        raise core.BenchmarkError("nothing was benchmarked; check the corpus paths")
+
     output = args.output or bench_dir / "results.json"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")

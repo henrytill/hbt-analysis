@@ -1,9 +1,12 @@
-# Benchmark corpus for scripts/benchmark.py.
+# The default benchmark corpus for hbt-bench.
 #
 # These are the author's private bookmark exports; they are in no repo and do
 # not exist in a fresh checkout. Point `path` wherever your own copies live, or
-# pass --corpus with a different file. Paths are expanded for `~` and taken
-# relative to the repository root.
+# run against benchmarks/fixtures.toml, which works anywhere:
+#
+#   nix run .#bench -- --corpus benchmarks/fixtures.toml
+#
+# Paths are expanded for `~` and taken relative to the repository root.
 #
 # Every implementation is tried against every input. A pair that fails is
 # recorded as unsupported and excluded from the timings rather than aborting
