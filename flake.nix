@@ -186,19 +186,23 @@
         # the working directory the package root, so the tree has to sit at
         # `hbt/bench` for the module to be `hbt.bench`, and a store path's
         # basename is a hash. Copying ./hbt/bench rather than ./hbt for the same
-        # reason `src` above does -- a second member of the namespace would need
-        # its own dependencies in nativeBuildInputs, not this one's.
+        # reason `src` above does: this check carries one package's dependency
+        # set, and a second member of the namespace would bring its own.
         checks.mypy =
           pkgs.runCommand "hbt-bench-mypy"
             {
-              nativeBuildInputs = with pkgs.python3Packages; [
-                mypy
-                # jinja2 ships its own types, so it is the package; tabulate
-                # does not, so it is the stubs. Strict mode fails on an untyped
-                # import either way.
-                jinja2
-                types-tabulate
-              ];
+              nativeBuildInputs = [
+                pkgs.python3Packages.mypy
+                # tabulate ships no py.typed, so its stubs have to be added
+                # alongside it; mypy prefers a stub package over an untyped one
+                # when both are present. A stub is not a runtime dependency, so
+                # this is the one thing the package cannot supply. jinja2 and
+                # tabulate themselves come from hbtBench, the same inheritance
+                # `inputsFrom` gives the dev shell below -- a dependency added
+                # to `dependencies` above reaches this check on its own.
+                pkgs.python3Packages.types-tabulate
+              ]
+              ++ hbtBench.propagatedBuildInputs;
             }
             ''
               mkdir hbt
