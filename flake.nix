@@ -69,6 +69,20 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
+        # The CLI alone, where a flake distinguishes it from its default. Only
+        # the `hbt` binary is ever benchmarked, but hbt-hs's default is `all`,
+        # which joins hbt-cli with pinboard-client: a 4.3 GB closure in place of
+        # 83 MB, built and fetched on every cold `nix run .#bench`. Keyed off
+        # the attribute rather than the implementation name, so it stays true
+        # for whoever exposes one next -- hbt-ocaml already does, where the two
+        # are the same derivation, and hbt-go and hbt-rs have no such split.
+        cliPackage =
+          name:
+          let
+            ps = inputs.${name}.packages.${system};
+          in
+          ps.hbt-cli or ps.default;
+
         hbtBench = pkgs.python3Packages.buildPythonApplication {
           pname = "hbt-bench";
           version = "0.1.0";
@@ -108,7 +122,7 @@
             ''
               makeWrapper ${hbtBench}/bin/hbt-bench $out/bin/hbt-bench \
                 ${pkgs.lib.concatMapStringsSep " " (name: ''
-                  --add-flags "--binary ${name}=${inputs.${name}.packages.${system}.default}/bin/hbt" \
+                  --add-flags "--binary ${name}=${cliPackage name}/bin/hbt" \
                   --add-flags "--revision ${name}=${inputs.${name}.rev}" \
                 '') names}
             '';
