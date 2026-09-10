@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from jinja2 import Environment, PackageLoader, StrictUndefined
 from tabulate import tabulate
 
 from hbt_bench.core import FORMAT_VERSION, BenchmarkError
@@ -22,8 +23,8 @@ def _escape(cell: str) -> str:
     return cell.replace("|", r"\|")
 
 
-def _table(header: list[str], rows: list[list[str]], numeric: int | None = None) -> list[str]:
-    """One aligned pipe table, followed by a blank line.
+def _table(header: list[str], rows: list[list[str]], numeric: int | None = None) -> str:
+    """One aligned pipe table.
 
     Columns from `numeric` onward hold measurements and are right-aligned, in
     the text and via the GFM `--:` marker so the published HTML aligns them
@@ -50,7 +51,7 @@ def _table(header: list[str], rows: list[list[str]], numeric: int | None = None)
         # among them -- to tabulate's taste rather than ours.
         disable_numparse=True,
     )
-    return text.splitlines() + [""]
+    return text
 
 
 def _row(cells: Cells, impls: list[str], name: str) -> list[dict[str, Any] | None]:
@@ -89,60 +90,58 @@ def _timing_rows(cells: Cells, impls: list[str], inputs: list[str]) -> list[list
 
 
 def render(data: dict[str, Any]) -> str:
-    """Render a results document as Markdown."""
+    """Render a results document as Markdown.
+
+    The document is a template: the headings, the prose and which sections
+    appear are report.md.j2, and this assembles the tables it interpolates.
+    Keeping the wording out of Python is the point -- it was string
+    continuations that black reflowed mid-sentence.
+    """
     version = data.get("version")
     if version != FORMAT_VERSION:
         raise BenchmarkError(f"results format {version!r}, expected {FORMAT_VERSION!r}")
     impls = [i["name"] for i in data["implementations"]]
     inputs = [i["name"] for i in data["inputs"]]
     cells: Cells = {(r["implementation"], r["input"]): r for r in data["results"]}
-    host = data["host"]
-
-    lines: list[str] = ["# hbt benchmark", ""]
-    lines += [
-        f"Generated {data['generated']} on {host['node']} ({host['machine']}, {host['system']} {host['release']})"
-        + (f", with {data['hyperfine']}." if data.get("hyperfine") else "."),
-        "",
-    ]
-
-    lines += ["## Entity counts", ""]
-    lines += _table(["input"] + impls, _entity_rows(cells, impls, inputs), numeric=1)
-    lines += ["A row that disagrees is a parity bug, not a benchmark result.", ""]
-
-    lines += ["## Timings", ""]
-    lines += [
-        "Mean wall time in milliseconds, plus or minus one standard deviation. `x` is the ratio to the fastest "
-        "implementation on that row; `--` means the implementation did not handle the input.",
-        "",
-    ]
-    lines += _table(["input"] + impls, _timing_rows(cells, impls, inputs), numeric=1)
 
     unavailable = [i for i in data["implementations"] if i["error"]]
-    if unavailable:
-        lines += ["## Unavailable", ""]
-        lines += ["These implementations were not run at all, so their columns are blank throughout.", ""]
-        lines += _table(["implementation", "reason"], [[i["name"], i["error"]] for i in unavailable])
-
     failures = [r for r in data["results"] if r["error"]]
-    if failures:
-        lines += ["## Not benchmarked", ""]
-        lines += [
-            "Pairs excluded from the timings. A reason names what actually happened -- a missing input and a "
-            "parser that rejected the format are not the same thing, and neither is the harness failing to find "
-            "a count in output it did not recognise.",
-            "",
-        ]
-        rows = [[f["implementation"], f["input"], f["error"]] for f in failures]
-        lines += _table(["implementation", "input", "reason"], rows)
 
-    lines += ["## Provenance", ""]
-    lines += _table(
-        ["implementation", "version", "revision", "store path"],
-        [
-            [i["name"], i["version"] or "--", (i["revision"] or "--")[:7], i["store_path"] or "--"]
-            for i in data["implementations"]
-        ],
+    # Markdown is whitespace-sensitive, so the template controls every blank
+    # line itself: block tags are trimmed, and a section's spacing lives with
+    # the section rather than being appended by the code that fills it.
+    env = Environment(
+        loader=PackageLoader("hbt_bench", "."),
+        autoescape=False,  # nosec B701 - Markdown, not HTML; cells are escaped by _escape
+        trim_blocks=True,
+        lstrip_blocks=True,
+        keep_trailing_newline=True,
+        undefined=StrictUndefined,
     )
-    lines += _table(["input", "path"], [[i["name"], i["path"]] for i in data["inputs"]])
-
-    return "\n".join(lines).rstrip() + "\n"
+    text = env.get_template("report.md.j2").render(
+        generated=data["generated"],
+        host=data["host"],
+        hyperfine=data.get("hyperfine"),
+        entities=_table(["input"] + impls, _entity_rows(cells, impls, inputs), numeric=1),
+        timings=_table(["input"] + impls, _timing_rows(cells, impls, inputs), numeric=1),
+        unavailable=(
+            _table(["implementation", "reason"], [[i["name"], i["error"]] for i in unavailable]) if unavailable else ""
+        ),
+        not_benchmarked=(
+            _table(
+                ["implementation", "input", "reason"],
+                [[f["implementation"], f["input"], f["error"]] for f in failures],
+            )
+            if failures
+            else ""
+        ),
+        provenance=_table(
+            ["implementation", "version", "revision", "store path"],
+            [
+                [i["name"], i["version"] or "--", (i["revision"] or "--")[:7], i["store_path"] or "--"]
+                for i in data["implementations"]
+            ],
+        ),
+        corpus=_table(["input", "path"], [[i["name"], i["path"]] for i in data["inputs"]]),
+    )
+    return text.rstrip() + "\n"

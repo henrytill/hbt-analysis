@@ -94,7 +94,10 @@
           );
           pyproject = true;
           build-system = [ pkgs.python3Packages.flit-core ];
-          dependencies = [ pkgs.python3Packages.tabulate ];
+          dependencies = with pkgs.python3Packages; [
+            jinja2
+            tabulate
+          ];
           # The type check is a flake check, not a build step. Leaving it here
           # made mypy -- a ~70 MiB closure on top of python3 -- a build input of
           # every consumer, including the pages build, which only needs to run
@@ -175,8 +178,10 @@
             {
               nativeBuildInputs = with pkgs.python3Packages; [
                 mypy
-                # The stubs, not tabulate itself: mypy only needs the types,
-                # and --strict fails on an untyped import.
+                # jinja2 ships its own types, so it is the package; tabulate
+                # does not, so it is the stubs. --strict fails on an untyped
+                # import either way.
+                jinja2
                 types-tabulate
               ];
             }

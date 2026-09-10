@@ -1,0 +1,37 @@
+# hbt benchmark
+
+Generated {{ generated }} on {{ host.node }} ({{ host.machine }}, {{ host.system }} {{ host.release }}){% if hyperfine %}, with {{ hyperfine }}{% endif %}.
+
+## Entity counts
+
+{{ entities }}
+
+A row that disagrees is a parity bug, not a benchmark result.
+
+## Timings
+
+Mean wall time in milliseconds, plus or minus one standard deviation. `x` is the ratio to the fastest implementation on that row; `--` means the implementation did not handle the input.
+
+{{ timings }}
+{% if unavailable %}
+
+## Unavailable
+
+These implementations were not run at all, so their columns are blank throughout.
+
+{{ unavailable }}
+{% endif %}
+{%- if not_benchmarked %}
+
+## Not benchmarked
+
+Pairs excluded from the timings. A reason names what actually happened -- a missing input and a parser that rejected the format are not the same thing, and neither is the harness failing to find a count in output it did not recognise.
+
+{{ not_benchmarked }}
+{% endif %}
+
+## Provenance
+
+{{ provenance }}
+
+{{ corpus }}
