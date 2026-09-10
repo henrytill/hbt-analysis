@@ -28,6 +28,14 @@
     # self; until then this is the option that works. The nix maintainers say
     # the warning may be ignored.
     #
+    # `github:henrytill/hbt-*` would also silence it -- those inputs carry rev
+    # and shortRev, so the version derivation above is satisfied, and each
+    # subflake's own `self.submodules = true` still pulls in its hbt-data. That
+    # is deliberately not done: it would make the submodule checkouts dead
+    # weight, and working inside them is what this repo is for. Building an
+    # implementation from github means the working tree is no longer what gets
+    # benchmarked.
+    #
     # The warning about not reading HEAD is separate and benign. Verified by
     # detaching hbt-go three commits back and re-locking: nix recorded the
     # checked-out revision, not master. It follows the gitlink correctly.
