@@ -281,7 +281,18 @@ def benchmark(pairs: list[Pair], inputs: list[Input], warmup: int, min_runs: int
             # hyperfine writes its progress display and summary to stdout, not
             # stderr. Send it to stderr so stdout carries nothing but the
             # report, and `hbt-bench > report.md` stays clean.
-            subprocess.run(cmd, check=True, stdout=sys.stderr)
+            try:
+                subprocess.run(cmd, check=True, stdout=sys.stderr)
+            except subprocess.CalledProcessError as exc:
+                # hyperfine exits non-zero if any command fails on any of its
+                # runs, and writes no export when it does. verify() has already
+                # pruned everything that fails reproducibly, so getting here
+                # means something intermittent -- record it against this input
+                # and keep the inputs already measured, rather than losing the
+                # whole run to the last one.
+                for pair in working:
+                    pair.error = f"hyperfine exited {exc.returncode}"
+                continue
             with open(tmp.name, encoding="utf-8") as f:
                 results = {r["command"]: r for r in json.load(f)["results"]}
         for pair in working:
