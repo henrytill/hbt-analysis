@@ -46,6 +46,8 @@ Every implementation is tried against every input. A pair that fails is recorded
 - **Unavailable** implementations, which produced no results at all, and **Not benchmarked** pairs, with the reason each was left out.
 - **Provenance**: the Nix store path behind every number, the binary's own `--version` string, and — under `.#bench`, where it is known exactly — the revision it was built from.
 
+The tables are rendered with `tabulate`, the only runtime dependency. Cells are escaped first: a `|` in an error message or a path would otherwise start a new column and GFM would silently drop the overflow, which `tabulate` does not handle for you — nor does `pandas`, which renders its Markdown through it.
+
 ### One source of truth
 
 `benchmarks/results.json` is the only benchmark file that is committed. Everything else is a translation of it: the Markdown report is rendered on demand (`--report-only`, to stdout unless `-r` names a file), and the HTML page is a Nix build output. Neither is ever written into the tree as a tracked file, so there is no derived copy to fall out of date with the numbers it came from.
