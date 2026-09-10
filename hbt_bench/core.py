@@ -185,19 +185,18 @@ def build(root: Path, names: list[str]) -> None:
         subprocess.run(["nix", "build", f"./{name}#", "-o", f"result-{name}"], cwd=root, check=True)
 
 
-def hyperfine_version() -> str | None:
-    """Which hyperfine produced the timings, for the same reason as the rest."""
-    out = subprocess.run(hyperfine_cmd() + ["--version"], capture_output=True, text=True, check=False)
-    return out.stdout.strip() or None if out.returncode == 0 else None
+def reported_version(cmd: list[str]) -> str | None:
+    """The first line of `cmd --version`, or None if it does not support it.
 
-
-def self_reported_version(binary: Path) -> str | None:
-    """What `binary --version` prints, or None if it does not support it."""
-    out = subprocess.run([str(binary), "--version"], capture_output=True, text=True, check=False)
+    One routine for both the implementations and hyperfine itself: they are
+    recorded for the same reason, and normalising them differently is how the
+    two drift.
+    """
+    out = subprocess.run(cmd + ["--version"], capture_output=True, text=True, check=False)
     if out.returncode != 0:
         return None
-    first = out.stdout.strip().splitlines()
-    return first[0] if first else None
+    lines = out.stdout.strip().splitlines()
+    return lines[0] if lines else None
 
 
 def discover(root: Path, names: list[str], overrides: dict[str, Path], revisions: dict[str, str]) -> list[Impl]:
@@ -227,7 +226,7 @@ def discover(root: Path, names: list[str], overrides: dict[str, Path], revisions
             impls.append(Impl(name, error=reason))
             continue
         store = str(binary.resolve().parent.parent)
-        impls.append(Impl(name, binary, store, self_reported_version(binary), revisions.get(name)))
+        impls.append(Impl(name, binary, store, reported_version([str(binary)]), revisions.get(name)))
     return impls
 
 
@@ -310,7 +309,7 @@ def collect(impls: list[Impl], inputs: list[Input], pairs: list[Pair]) -> dict[s
     return {
         "version": FORMAT_VERSION,
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "hyperfine": hyperfine_version(),
+        "hyperfine": reported_version(hyperfine_cmd()),
         "host": {
             "node": platform.node(),
             "machine": platform.machine(),
