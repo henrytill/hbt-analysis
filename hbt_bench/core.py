@@ -148,6 +148,29 @@ def repo_root() -> Path:
     return Path(out.stdout.strip())
 
 
+def load_results(path: Path) -> dict[str, Any]:
+    """Read back a results document, translating the failures load_corpus does.
+
+    The document's shape is this module's contract, so reading it is too. It
+    matters here because the path that re-renders a saved run is the one the
+    Nix derivation for the published page takes: a missing or malformed file
+    should fail that build with a message, not a traceback.
+    """
+    try:
+        with path.open(encoding="utf-8") as f:
+            data: dict[str, Any] = json.load(f)
+    except FileNotFoundError as exc:
+        raise BenchmarkError(f"{path}: no such results file") from exc
+    except json.JSONDecodeError as exc:
+        raise BenchmarkError(f"{path}: not valid JSON: {exc}") from exc
+    return data
+
+
+def dump_results(data: dict[str, Any]) -> str:
+    """The document's on-disk form, so only this module spells it."""
+    return json.dumps(data, indent=2) + "\n"
+
+
 def hyperfine_cmd() -> list[str]:
     """Prefer hyperfine on PATH; fall back to fetching it through Nix.
 

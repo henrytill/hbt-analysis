@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 from typing import Any
@@ -71,18 +70,7 @@ def run(args: argparse.Namespace) -> int:
         # Deliberately before repo_root(): re-rendering must work outside a git
         # checkout, because the Nix derivation that builds the published page
         # does exactly that in the sandbox.
-        # Translated the way load_corpus translates its own failures: this is
-        # the path the Nix derivation for the published page runs, so a results
-        # file that is missing or malformed should fail the build with a
-        # message rather than a traceback.
-        try:
-            with args.report_only.open(encoding="utf-8") as f:
-                data = json.load(f)
-        except FileNotFoundError as exc:
-            raise core.BenchmarkError(f"{args.report_only}: no such results file") from exc
-        except json.JSONDecodeError as exc:
-            raise core.BenchmarkError(f"{args.report_only}: not valid JSON: {exc}") from exc
-        return write_report(data, args.report)
+        return write_report(core.load_results(args.report_only), args.report)
 
     root = core.repo_root()
     bench_dir = root / "benchmarks"
@@ -114,7 +102,7 @@ def run(args: argparse.Namespace) -> int:
 
     output = args.output or bench_dir / "results.json"
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    output.write_text(core.dump_results(data), encoding="utf-8")
     print(f"wrote {output}", file=sys.stderr)
 
     # No default path: results.json is the only file this leaves in the tree.
