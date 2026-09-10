@@ -18,7 +18,7 @@ This file provides guidance to coding agents working in this repository. `CLAUDE
 | `hbt-ocaml` | OCaml (dune) | github.com/henrytill/hbt-ocaml |
 | `hbt-rs` | Rust (cargo workspace) | github.com/henrytill/hbt-rs |
 
-The root holds one piece of source: `hbt_bench/`, the benchmark harness (Python, flit-packaged, `nix run .#bench`). It builds all four implementations from their own flakes, records `--info` entity counts, times each input across all four with `hyperfine`, and writes `benchmarks/results.json` — the one committed benchmark file. The Markdown report and the HTML page are both translations of it and are never committed: the report renders to stdout (or to `-r FILE`), and the page is a Nix build output. `README.md` documents it. `nix build .#site` renders the committed `benchmarks/results.json` into a standalone HTML page under `share/doc/hbt-analysis/html/`, which `.github/workflows/pages.yml` deploys to GitHub Pages — the same shape `henrytill/atp` uses. **Nothing is ever timed in CI**; the workflow only renders results produced by a local run. It replaced an org-babel notebook whose numbers carried no provenance.
+The root holds one piece of source: `hbt/bench/`, the benchmark harness (Python, flit-packaged, `nix run .#bench`). It builds all four implementations from their own flakes, records `--info` entity counts, times each input across all four with `hyperfine`, and writes `benchmarks/results.json` — the one committed benchmark file. The Markdown report and the HTML page are both translations of it and are never committed: the report renders to stdout (or to `-r FILE`), and the page is a Nix build output. `README.md` documents it. `nix build .#site` renders the committed `benchmarks/results.json` into a standalone HTML page under `share/doc/hbt-analysis/html/`, which `.github/workflows/pages.yml` deploys to GitHub Pages — the same shape `henrytill/atp` uses. **Nothing is ever timed in CI**; the workflow only renders results produced by a local run. It replaced an org-babel notebook whose numbers carried no provenance.
 
 **You almost certainly cannot re-run the real benchmark.** The corpus in `benchmarks/corpus.toml` points at the author's private bookmark exports (`~/src/notes/all-2024.md`, `~/src/bookmarks/*`); they are in no repo and do not exist in a fresh checkout, so refreshing the numbers is not work an agent can do. Point the corpus at the `hbt-data` fixtures for a smoke test — they exercise every code path but are far too small to time meaningfully.
 
@@ -166,16 +166,18 @@ Each submodule carries its own: `.ocamlformat` plus `.prettierrc.cjs` for the JS
 
 ### The root
 
-Python in `hbt_bench/` follows the same conventions as the author's other Python projects (`henrytill/pagewielder`, `henrytill/ananke-py`): flit-core build backend with `dynamic = ["version", "description"]`, black at **line-length 120**, isort with the black profile, flake8 (`.flake8`, `extend-ignore = E203`), mypy `strict`, pylint at 120 with a small disable list, and pyright `strict`. All of them are in the root dev shell, and all of them pass clean — keep it that way:
+Python in `hbt/bench/` follows the same conventions as the author's other Python projects (`henrytill/pagewielder`, `henrytill/ananke-py`): flit-core build backend with `dynamic = ["version", "description"]`, black at **line-length 120**, isort with the black profile, flake8 (`.flake8`, `extend-ignore = E203`), mypy `strict`, pylint at 120 with a small disable list, and pyright `strict`. All of them are in the root dev shell, and all of them pass clean — keep it that way:
 
 ```sh
 nix develop
-black hbt_bench && isort hbt_bench && flake8 hbt_bench && mypy hbt_bench && pylint hbt_bench && pyright hbt_bench
+black hbt && isort hbt && flake8 hbt && mypy hbt && pylint hbt && pyright hbt
 ```
 
-The set of implementations is read from `.gitmodules` at runtime, the same way `scripts/update-submodules.sh` and `scripts/open-submodule-pr.sh` do it — adding or removing a submodule needs no edit in `hbt_bench/`, and `flake.nix` derives the same set from its inputs. Report columns are sorted, so `.gitmodules` ordering does not leak into the output.
+The set of implementations is read from `.gitmodules` at runtime, the same way `scripts/update-submodules.sh` and `scripts/open-submodule-pr.sh` do it — adding or removing a submodule needs no edit in `hbt/bench/`, and `flake.nix` derives the same set from its inputs. Report columns are sorted, so `.gitmodules` ordering does not leak into the output.
 
-`hbt_bench/__init__.py` is checked in rather than generated: the sibling projects derive `__version__` from a `VERSION` file and the git ref via a `run.py`, and this package is a local tool that is never distributed, so it does not carry that machinery.
+`hbt/bench/__init__.py` is checked in rather than generated: the sibling projects derive `__version__` from a `VERSION` file and the git ref via a `run.py`, and this package is a local tool that is never distributed, so it does not carry that machinery.
+
+`hbt` is a [PEP 420](https://peps.python.org/pep-0420/) namespace portion: it deliberately has **no `__init__.py`**, and the importable package is `hbt.bench`. Nothing else lives under `hbt.` yet — the namespace is there so a future Python member (bindings to `hbt-rs`, say) can join it without renaming this one. The distribution and the script are still `hbt-bench`; flit cannot infer a dotted module from a dist name, so `[tool.flit.module] name` states it. The same non-inference bites the checkers, which otherwise read `hbt/bench` as a top-level `bench` and then cannot resolve `hbt.bench` — mypy needs `explicit_package_bases`, pylint needs `source-roots = ["."]`, and both are set in `pyproject.toml`. That is why `checks.mypy` in `flake.nix` copies `pyproject.toml` alongside the tree it copies: without the config the check fails on module names, not on types.
 
 Bash in `scripts/` uses **hard tabs, tab-width 8**. `shellcheck` and `shfmt` are in the root dev shell; the flag set that matches the existing style is:
 

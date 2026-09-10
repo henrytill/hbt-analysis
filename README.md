@@ -22,7 +22,7 @@ Inside the dev shell, run it from the working tree so edits take effect. There i
 
 ```sh
 nix develop
-python -m hbt_bench --build          # --build refreshes the symlinks first
+python -m hbt.bench --build          # --build refreshes the symlinks first
 ```
 
 ### Run it locally, publish from CI
@@ -46,7 +46,7 @@ Every implementation is tried against every input. A pair that fails is recorded
 - **Unavailable** implementations, which produced no results at all, and **Not benchmarked** pairs, with the reason each was left out.
 - **Provenance**: the Nix store path behind every number, the binary's own `--version` string, and — under `.#bench`, where it is known exactly — the revision it was built from.
 
-The document is a Jinja template, `hbt_bench/report.md.j2` — the headings, the prose and which sections appear live there rather than in Python. The tables are rendered with `tabulate` and interpolated into it. Cells are escaped first: a `|` in an error message or a path would otherwise start a new column and GFM would silently drop the overflow, which `tabulate` does not handle for you — nor does `pandas`, which renders its Markdown through it.
+The document is a Jinja template, `hbt/bench/report.md.j2` — the headings, the prose and which sections appear live there rather than in Python. The tables are rendered with `tabulate` and interpolated into it. Cells are escaped first: a `|` in an error message or a path would otherwise start a new column and GFM would silently drop the overflow, which `tabulate` does not handle for you — nor does `pandas`, which renders its Markdown through it.
 
 ### One source of truth
 
@@ -62,7 +62,7 @@ The cost is a third layer of pinning. `flake.lock` records a rev for each implem
 nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs
 ```
 
-`inputs.self.submodules = true` is set, so `self` is the tree *with* the submodules rather than with four empty directories. The usual cost of setting it — every submodule tree landing in `src = self` — does not apply here: the `hbt-bench` derivation takes a `lib.fileset`-filtered source of just `hbt_bench/`, `pyproject.toml`, and this README, so it stays 44K and does not rebuild when a pointer moves.
+`inputs.self.submodules = true` is set, so `self` is the tree *with* the submodules rather than with four empty directories. The usual cost of setting it — every submodule tree landing in `src = self` — does not apply here: the `hbt-bench` derivation takes a `lib.fileset`-filtered source of just `hbt/bench/`, `pyproject.toml`, and this README, so it stays 44K and does not rebuild when a pointer moves.
 
 The `git+file:` inputs emit a deprecation warning ([NixOS/nix#12281](https://github.com/NixOS/nix/issues/12281)). That issue prescribes replacing them with `inputs.self.submodules = true` plus a bare path literal (`hbt-rs.url = ./hbt-rs`), which is half of what is already here — but the other half does not work: `hbt-go` then fails to evaluate with `attribute 'dirtyShortRev' missing`, because three of the four subflakes read their version out of `self`'s git metadata and a path input has none. Making the prescribed form usable means teaching the four upstreams to tolerate a revision-less `self`. Until then the warning is ignorable, which is also what the Nix maintainers say on that issue.
 
@@ -72,7 +72,7 @@ The companion warning about not reading HEAD is benign: detaching `hbt-go` three
 
 | Path | What |
 |---|---|
-| `hbt_bench/` | the benchmark harness (Python, flit) |
+| `hbt/bench/` | the benchmark harness (Python, flit); `hbt` is a PEP 420 namespace portion, so it has no `__init__.py` |
 | `benchmarks/` | corpus definitions, `results.json`, and the pandoc defaults for the page |
 | `scripts/` | submodule pointer maintenance (bash) |
 | `flake.nix` | the harness, the dev shell, `.#bench`, and `.#site` |
