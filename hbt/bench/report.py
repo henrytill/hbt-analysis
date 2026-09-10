@@ -106,6 +106,11 @@ def render(data: dict[str, Any]) -> str:
 
     unavailable = [i for i in data["implementations"] if i["error"]]
     failures = [r for r in data["results"] if r["error"]]
+    # Whether the timing phase ran, asked of the timings rather than of
+    # `hyperfine`: that is the version string, and reported_version returns None
+    # for any command whose --version fails -- which would drop a whole table of
+    # real measurements on a run that went fine.
+    timed = any(r["timing"] for r in data["results"])
 
     # Markdown is whitespace-sensitive, so the template controls every blank
     # line itself: block tags are trimmed, and a section's spacing lives with
@@ -123,12 +128,10 @@ def render(data: dict[str, Any]) -> str:
         host=data["host"],
         hyperfine=data.get("hyperfine"),
         entities=_table(["input"] + impls, _entity_rows(cells, impls, inputs), numeric=1),
-        # Empty when the timing phase did not run, which is what makes the
-        # template drop the section -- the same shape as the two below, and the
-        # reason _timing_rows is not built for a grid of `--` nobody renders.
-        timings=(
-            _table(["input"] + impls, _timing_rows(cells, impls, inputs), numeric=1) if data.get("hyperfine") else ""
-        ),
+        # Empty when nothing was timed, which is what makes the template drop the
+        # section -- the same shape as the two below, and the reason _timing_rows
+        # is not built for a grid of `--` nobody renders.
+        timings=(_table(["input"] + impls, _timing_rows(cells, impls, inputs), numeric=1) if timed else ""),
         unavailable=(
             _table(["implementation", "reason"], [[i["name"], i["error"]] for i in unavailable]) if unavailable else ""
         ),
