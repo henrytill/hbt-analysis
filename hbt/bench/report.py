@@ -123,7 +123,12 @@ def render(data: dict[str, Any]) -> str:
         host=data["host"],
         hyperfine=data.get("hyperfine"),
         entities=_table(["input"] + impls, _entity_rows(cells, impls, inputs), numeric=1),
-        timings=_table(["input"] + impls, _timing_rows(cells, impls, inputs), numeric=1),
+        # Empty when the timing phase did not run, which is what makes the
+        # template drop the section -- the same shape as the two below, and the
+        # reason _timing_rows is not built for a grid of `--` nobody renders.
+        timings=(
+            _table(["input"] + impls, _timing_rows(cells, impls, inputs), numeric=1) if data.get("hyperfine") else ""
+        ),
         unavailable=(
             _table(["implementation", "reason"], [[i["name"], i["error"]] for i in unavailable]) if unavailable else ""
         ),
