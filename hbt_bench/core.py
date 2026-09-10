@@ -286,10 +286,9 @@ def verify(impls: list[Impl], inputs: list[Input]) -> list[Pair]:
 def benchmark(pairs: list[Pair], inputs: list[Input], warmup: int, min_runs: int | None) -> str | None:
     """Time each input across every implementation that handled it.
 
-    Returns the hyperfine that did it, asked once here rather than later from
-    collect(): this is the function that resolved the command, and outside a
-    dev shell resolving it again means a second `nix run` after the timings
-    are already done.
+    Returns the hyperfine that did it, asked here rather than from collect():
+    the version belongs to the run, and this is the function that made it.
+    That keeps collect() a pure mapping from collected state to the document.
     """
     hyperfine = hyperfine_cmd()
     for inp in inputs:
