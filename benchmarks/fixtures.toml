@@ -6,6 +6,10 @@
 # exercise each parser end to end. They are a few entities each, far too small
 # to time meaningfully -- use this to check the harness runs, not to compare
 # implementations.
+#
+# All four vendor the same data repo, so hbt-rs's copy is an arbitrary pick
+# among four identical ones, not a dependency on that implementation. It is
+# the path that needs updating if hbt-rs ever moves its mount point.
 
 [[input]]
 name = "markdown"
