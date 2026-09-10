@@ -7,14 +7,15 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import hbt_bench
 from hbt_bench import __version__, core, report
-
-DESCRIPTION = "Benchmark the four hbt implementations against a shared corpus."
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Build the parser and parse `argv` (default: sys.argv)."""
-    parser = argparse.ArgumentParser(prog="hbt-bench", description=DESCRIPTION)
+    # The package docstring: pyproject declares description dynamic, so flit
+    # publishes that same line as the distribution summary.
+    parser = argparse.ArgumentParser(prog="hbt-bench", description=hbt_bench.__doc__)
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--corpus", type=Path, help="corpus TOML (default: benchmarks/corpus.toml)")
     parser.add_argument("-o", "--output", type=Path, help="results JSON (default: benchmarks/results.json)")
