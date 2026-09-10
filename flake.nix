@@ -85,7 +85,13 @@
 
         hbtBench = pkgs.python3Packages.buildPythonApplication {
           pname = "hbt-bench";
-          version = "0.1.0";
+          # From __init__.py, which pyproject's dynamic version already makes
+          # the one source the wheel is built from. Restating it here would let
+          # the store path -- a provenance label, in a tool whose subject is
+          # provenance -- go on claiming 0.1.0 after a bump.
+          version = builtins.head (
+            builtins.match ".*__version__ = \"([^\"]+)\".*" (builtins.readFile ./hbt_bench/__init__.py)
+          );
           pyproject = true;
           build-system = [ pkgs.python3Packages.flit-core ];
           # The type check is a flake check, not a build step. Leaving it here
