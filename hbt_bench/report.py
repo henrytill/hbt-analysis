@@ -29,14 +29,10 @@ def _table(header: list[str], rows: list[list[str]], numeric: int | None = None)
         pad = [c.rjust(w) if i >= numeric else c.ljust(w) for i, (c, w) in enumerate(zip(cells, widths))]
         return "| " + " | ".join(pad) + " |"
 
-    sep = (
-        "|"
-        + "|".join(
-            (" " + "-" * (w - 1) + ": ") if i >= numeric else (" " + "-" * w + " ") for i, w in enumerate(widths)
-        )
-        + "|"
-    )
-    return [render_row(header), sep] + [render_row(r) for r in rows] + [""]
+    # The separator is a row like any other, so the column geometry is stated
+    # once: pad and join it the same way, and it cannot drift out of step.
+    dashes = ["-" * (w - 1) + ":" if i >= numeric else "-" * w for i, w in enumerate(widths)]
+    return [render_row(header), render_row(dashes)] + [render_row(r) for r in rows] + [""]
 
 
 def _row(cells: Cells, impls: list[str], name: str) -> list[dict[str, Any] | None]:
