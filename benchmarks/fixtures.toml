@@ -1,0 +1,20 @@
+# A corpus that works in any checkout, unlike the private one in corpus.toml.
+#
+#   nix run .#bench -- --corpus benchmarks/fixtures.toml
+#
+# These are the hbt-data golden fixtures vendored in every submodule, so they
+# exercise each parser end to end. They are a few entities each, far too small
+# to time meaningfully -- use this to check the harness runs, not to compare
+# implementations.
+
+[[input]]
+name = "markdown"
+path = "hbt-rs/test-data/markdown/basic.input.md"
+
+[[input]]
+name = "html"
+path = "hbt-rs/test-data/html/bookmarks_folders.input.html"
+
+[[input]]
+name = "xml"
+path = "hbt-rs/test-data/pinboard/xml/sample.input.xml"
