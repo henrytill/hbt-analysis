@@ -37,6 +37,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=[],
         help="record REV as the revision NAME's binary was built from (repeatable)",
     )
+    parser.add_argument(
+        "--info-only",
+        action="store_true",
+        help="run the --info stage and skip the timings (requires -o)",
+    )
     parser.add_argument("--warmup", type=int, default=20, help="hyperfine warmup runs (default: 20)")
     parser.add_argument("--min-runs", type=int, help="hyperfine minimum runs (default: hyperfine's own)")
     return parser.parse_args(argv)
@@ -78,6 +83,15 @@ def run(args: argparse.Namespace) -> int:
         write_report(core.load_results(args.report_only), args.report)
         return 0
 
+    # A timing-less document must never land on the committed results file: the
+    # Pages build publishes benchmarks/results.json, and --info-only produces a
+    # document whose timings are absent by construction. Refuse the default here
+    # rather than trust every caller to redirect it.
+    if args.info_only and args.output is None:
+        raise core.BenchmarkError(
+            "--info-only writes no timings; pass -o so it cannot overwrite benchmarks/results.json"
+        )
+
     root = core.repo_root()
     bench_dir = root / "benchmarks"
 
@@ -96,14 +110,18 @@ def run(args: argparse.Namespace) -> int:
         raise core.BenchmarkError("no built implementations found; try --build")
     inputs = core.load_corpus(root, args.corpus or bench_dir / "corpus.toml")
     pairs = core.verify(impls, inputs)
-    hyperfine = core.benchmark(pairs, inputs, args.warmup, args.min_runs)
+    hyperfine = None if args.info_only else core.benchmark(pairs, inputs, args.warmup, args.min_runs)
     data = core.collect(impls, inputs, pairs, hyperfine)
 
     # A corpus none of whose inputs exist still produces a document, and that
     # document is what the Pages workflow publishes. Refuse to write one rather
     # than let a fresh checkout quietly overwrite real numbers with a grid of
-    # errors.
-    if not any(p.timing for p in pairs):
+    # errors. Under --info-only the timings are absent by construction, so the
+    # entity counts are what has to be there instead.
+    if args.info_only:
+        if not any(p.entities is not None for p in pairs):
+            raise core.BenchmarkError("nothing was parsed; check the corpus paths")
+    elif not any(p.timing for p in pairs):
         raise core.BenchmarkError("nothing was benchmarked; check the corpus paths")
 
     output = args.output or bench_dir / "results.json"
