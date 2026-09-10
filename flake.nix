@@ -105,11 +105,13 @@
           doCheck = false;
           # Just the package, not the whole tree: keeps the four submodule trees
           # that self.submodules pulls in out of the derivation, and stops
-          # AGENTS.md edits from triggering a rebuild.
+          # AGENTS.md edits from triggering a rebuild. `./hbt/bench` rather than
+          # `./hbt`, so that a second member of the namespace does not become a
+          # source input of this one.
           src = pkgs.lib.fileset.toSource {
             root = ./.;
             fileset = pkgs.lib.fileset.unions [
-              ./hbt
+              ./hbt/bench
               ./pyproject.toml
               ./README.md
             ];

@@ -62,7 +62,7 @@ The cost is a third layer of pinning. `flake.lock` records a rev for each implem
 nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs
 ```
 
-`inputs.self.submodules = true` is set, so `self` is the tree *with* the submodules rather than with four empty directories. The usual cost of setting it — every submodule tree landing in `src = self` — does not apply here: the `hbt-bench` derivation takes a `lib.fileset`-filtered source of just `hbt/bench/`, `pyproject.toml`, and this README, so it stays 44K and does not rebuild when a pointer moves.
+`inputs.self.submodules = true` is set, so `self` is the tree *with* the submodules rather than with four empty directories. The usual cost of setting it — every submodule tree landing in `src = self` — does not apply here: the `hbt-bench` derivation takes a `lib.fileset`-filtered source of just `hbt/bench/`, `pyproject.toml`, and this README, so it stays 37K and does not rebuild when a pointer moves.
 
 The `git+file:` inputs emit a deprecation warning ([NixOS/nix#12281](https://github.com/NixOS/nix/issues/12281)). That issue prescribes replacing them with `inputs.self.submodules = true` plus a bare path literal (`hbt-rs.url = ./hbt-rs`), which is half of what is already here — but the other half does not work: `hbt-go` then fails to evaluate with `attribute 'dirtyShortRev' missing`, because three of the four subflakes read their version out of `self`'s git metadata and a path input has none. Making the prescribed form usable means teaching the four upstreams to tolerate a revision-less `self`. Until then the warning is ignorable, which is also what the Nix maintainers say on that issue.
 
