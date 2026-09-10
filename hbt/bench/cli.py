@@ -83,17 +83,18 @@ def run(args: argparse.Namespace) -> int:
         write_report(core.load_results(args.report_only), args.report)
         return 0
 
-    # A timing-less document must never land on the committed results file: the
-    # Pages build publishes benchmarks/results.json, and --info-only produces a
-    # document whose timings are absent by construction. Refuse the default here
-    # rather than trust every caller to redirect it.
-    if args.info_only and args.output is None:
-        raise core.BenchmarkError(
-            "--info-only writes no timings; pass -o so it cannot overwrite benchmarks/results.json"
-        )
-
     root = core.repo_root()
     bench_dir = root / "benchmarks"
+    published = bench_dir / "results.json"
+    output = args.output or published
+
+    # A timing-less document must never land on the file the page is built from:
+    # --info-only has no timings by construction, and .#site renders whatever
+    # benchmarks/results.json holds. Compared as resolved paths rather than by
+    # "was -o given", so naming the file explicitly is refused too -- which file
+    # gets written is the invariant, not how the caller chose it.
+    if args.info_only and output.resolve() == published.resolve():
+        raise core.BenchmarkError(f"--info-only writes no timings; -o must not be {published}")
 
     known = core.implementations(root)
     names = args.impl or known
@@ -124,7 +125,6 @@ def run(args: argparse.Namespace) -> int:
     elif not any(p.timing for p in pairs):
         raise core.BenchmarkError("nothing was benchmarked; check the corpus paths")
 
-    output = args.output or bench_dir / "results.json"
     write(output, core.dump_results(data))
 
     # No default path: results.json is the only file this leaves in the tree.
