@@ -181,10 +181,11 @@
         "uri-bytestring-src": "uri-bytestring-src"
       },
       "locked": {
-        "lastModified": 1788820447,
-        "narHash": "sha256-BddGn5czsYs3CGGFLtG6MdisnQxL2aYv787Hvj+uvUU=",
-        "rev": "b9a8a04d31bb7554e9c37e1b1c29d2167965ad9c",
-        "revCount": 466,
+        "lastModified": 1789174691,
+        "narHash": "sha256-ioAGvaFDJA/l/g3SfPEEpEy+2NayHqiFhCtl0zsV/EQ=",
+        "ref": "refs/heads/master",
+        "rev": "b985e3a641fd6b07bfdd8e50ef741d2f43db1e99",
+        "revCount": 467,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-hs"
