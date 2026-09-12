@@ -2,52 +2,42 @@
 
 from __future__ import annotations
 
-import argparse
+import subprocess
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+import click
 
 from hbt import bench
 from hbt.bench import core, report
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    """Build the parser and parse `argv` (default: sys.argv)."""
-    # The package docstring: pyproject declares description dynamic, so flit
-    # publishes that same line as the distribution summary.
-    parser = argparse.ArgumentParser(prog="hbt-bench", description=bench.__doc__)
-    parser.add_argument("--version", action="version", version=f"%(prog)s {bench.__version__}")
-    parser.add_argument("--corpus", type=Path, help="corpus TOML (default: benchmarks/corpus.toml)")
-    parser.add_argument("-o", "--output", type=Path, help="results JSON (default: benchmarks/results.json)")
-    parser.add_argument("-r", "--report", type=Path, help="write the Markdown report here (default: stdout)")
-    parser.add_argument("--report-only", type=Path, metavar="RESULTS", help="re-render a saved results file")
-    parser.add_argument("--build", action="store_true", help="nix build each implementation first")
-    parser.add_argument("--impl", action="append", metavar="NAME", help="limit to this implementation (repeatable)")
-    parser.add_argument(
-        "--binary",
-        action="append",
-        metavar="NAME=PATH",
-        default=[],
-        help="use this binary for NAME instead of result-NAME/bin/hbt (repeatable)",
-    )
-    parser.add_argument(
-        "--revision",
-        action="append",
-        metavar="NAME=REV",
-        default=[],
-        help="record REV as the revision NAME's binary was built from (repeatable)",
-    )
-    parser.add_argument(
-        "--info-only",
-        action="store_true",
-        help="run the --info stage and skip the timings (requires -o)",
-    )
-    parser.add_argument("--warmup", type=int, default=20, help="hyperfine warmup runs (default: 20)")
-    parser.add_argument("--min-runs", type=int, help="hyperfine minimum runs (default: hyperfine's own)")
-    return parser.parse_args(argv)
+@dataclass(frozen=True)
+class Options:  # pylint: disable=too-many-instance-attributes
+    """Everything a run is told.
+
+    A record rather than the parser's own namespace, so `run` is callable in
+    process -- by a test, or by the conformance matrix that will want to
+    benchmark and check the same four binaries -- without either of them
+    reaching for a command-line parser to build an argument list.
+    """
+
+    corpus: Path | None = None
+    output: Path | None = None
+    report: Path | None = None
+    report_only: Path | None = None
+    build: bool = False
+    impl: tuple[str, ...] = field(default_factory=tuple)
+    binary: tuple[str, ...] = field(default_factory=tuple)
+    revision: tuple[str, ...] = field(default_factory=tuple)
+    info_only: bool = False
+    warmup: int = 20
+    min_runs: int | None = None
 
 
-def parse_pairs(specs: list[str], flag: str, shape: str, known: list[str]) -> dict[str, str]:
+def parse_pairs(specs: tuple[str, ...], flag: str, shape: str, known: list[str]) -> dict[str, str]:
     """Parse repeated NAME=VALUE arguments, validating NAME."""
     parsed: dict[str, str] = {}
     for spec in specs:
@@ -74,7 +64,7 @@ def write_report(data: dict[str, Any], path: Path | None) -> None:
     write(path, text)
 
 
-def run(args: argparse.Namespace) -> int:
+def run(args: Options) -> int:
     """Run the benchmark (or just re-render) and write the outputs."""
     if args.report_only:
         # Deliberately before repo_root(): re-rendering must work outside a git
@@ -97,7 +87,7 @@ def run(args: argparse.Namespace) -> int:
         raise core.BenchmarkError(f"--info-only writes no timings; -o must not be {published}")
 
     known = core.implementations(root)
-    names = args.impl or known
+    names = list(args.impl) or known
     unknown = set(names) - set(known)
     if unknown:
         raise core.BenchmarkError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
@@ -132,3 +122,65 @@ def run(args: argparse.Namespace) -> int:
     # unless asked for, and the HTML is produced by `nix build .#site`.
     write_report(data, args.report)
     return 0
+
+
+def guarded(options: Options) -> int:
+    """Turn the expected failures into a message and an exit status."""
+    try:
+        return run(options)
+    except core.BenchmarkError as exc:
+        print(f"hbt-bench: {exc}", file=sys.stderr)
+        return 2
+    except subprocess.CalledProcessError as exc:
+        print(f"hbt-bench: {exc}", file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        # Click's own handler would abort with 1; a benchmark is long enough
+        # that being interrupted is ordinary, and 130 says which signal did it.
+        return 130
+
+
+@click.command(context_settings={"help_option_names": ["-h", "--help"]})
+@click.option("--corpus", type=click.Path(path_type=Path), help="corpus TOML (default: benchmarks/corpus.toml)")
+@click.option("-o", "--output", type=click.Path(path_type=Path), help="results JSON (default: benchmarks/results.json)")
+@click.option(
+    "-r", "--report", type=click.Path(path_type=Path), help="write the Markdown report here (default: stdout)"
+)
+@click.option(
+    "--report-only",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    metavar="RESULTS",
+    help="re-render a saved results file",
+)
+@click.option("--build", is_flag=True, help="nix build each implementation first")
+@click.option("--impl", multiple=True, metavar="NAME", help="limit to this implementation (repeatable)")
+@click.option(
+    "--binary",
+    multiple=True,
+    metavar="NAME=PATH",
+    help="use this binary for NAME instead of result-NAME/bin/hbt (repeatable)",
+)
+@click.option(
+    "--revision",
+    multiple=True,
+    metavar="NAME=REV",
+    help="record REV as the revision NAME's binary was built from (repeatable)",
+)
+@click.option("--info-only", is_flag=True, help="run the --info stage and skip the timings (requires -o)")
+@click.option("--warmup", type=click.IntRange(min=0), default=20, show_default=True, help="hyperfine warmup runs")
+@click.option("--min-runs", type=click.IntRange(min=1), help="hyperfine minimum runs (default: hyperfine's own)")
+@click.version_option(bench.__version__, "--version", prog_name="hbt-bench")
+@click.pass_context
+def cli(ctx: click.Context, /, **kwargs: Any) -> None:
+    """Parse the command line into Options and run it.
+
+    The help Click prints is set below, from the package docstring; this one
+    describes the function.
+    """
+    ctx.exit(guarded(Options(**kwargs)))
+
+
+# pyproject declares the package docstring as the distribution summary, so it
+# is already the one-line description of this tool. Assigned rather than
+# repeated in the docstring above, where a second copy could drift from it.
+cli.help = bench.__doc__

@@ -95,6 +95,7 @@
           pyproject = true;
           build-system = [ pkgs.python3Packages.flit-core ];
           dependencies = with pkgs.python3Packages; [
+            click
             jinja2
             tabulate
           ];
