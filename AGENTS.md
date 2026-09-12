@@ -170,7 +170,8 @@ Python in `hbt/bench/` follows the same conventions as the author's other Python
 
 ```sh
 nix develop
-black hbt && isort hbt && flake8 hbt && mypy hbt && pylint hbt && pyright hbt
+black hbt tests && isort hbt tests && flake8 hbt tests && mypy hbt tests && pylint hbt tests && pyright hbt tests
+python3 -m unittest discover -s tests -t .
 ```
 
 The set of implementations is read from `.gitmodules` at runtime, the same way `scripts/update-submodules.sh` and `scripts/open-submodule-pr.sh` do it — adding or removing a submodule needs no edit in `hbt/bench/`, and `flake.nix` derives the same set from its inputs. Report columns are sorted, so `.gitmodules` ordering does not leak into the output.
