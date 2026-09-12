@@ -144,7 +144,11 @@ def run(options: Options) -> int:
 )
 @click.option(
     "--report-only",
-    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    # Deliberately not `exists=True`: `core.load_results` diagnoses a missing
+    # or malformed results file, and that one message is what `nix build
+    # .#site` should fail with.  Two checks would mean two wordings for the
+    # same mistake, and would leave the one core.py documents unreachable.
+    type=click.Path(dir_okay=False, path_type=Path),
     metavar="RESULTS",
     help="re-render a saved results file",
 )

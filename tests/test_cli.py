@@ -97,7 +97,7 @@ class Invocation(unittest.TestCase):
     def test_report_only_needs_a_file_that_exists(self) -> None:
         result = self.runner.invoke(cli, ["--report-only", str(self.root / "gone.json")])
         self.assertEqual(result.exit_code, 2)
-        self.assertIn("does not exist", result.output)
+        self.assertIn("no such results file", result.output)
 
     def test_info_only_refuses_the_published_results_file(self) -> None:
         """A document with no timings must never become the published one."""
