@@ -208,7 +208,8 @@
             ''
               mkdir hbt
               cp -r ${./hbt/bench} hbt/bench
-              mypy --config-file ${./pyproject.toml} hbt/bench
+              cp -r ${./tests} tests
+              mypy --config-file ${./pyproject.toml} hbt/bench tests
               touch $out
             '';
 
