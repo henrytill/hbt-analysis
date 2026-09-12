@@ -64,44 +64,44 @@ def write_report(data: dict[str, Any], path: Path | None) -> None:
     write(path, text)
 
 
-def run(args: Options) -> int:
+def run(options: Options) -> int:
     """Run the benchmark (or just re-render) and write the outputs."""
-    if args.report_only:
+    if options.report_only:
         # Deliberately before repo_root(): re-rendering must work outside a git
         # checkout, because the Nix derivation that builds the published page
         # does exactly that in the sandbox.
-        write_report(core.load_results(args.report_only), args.report)
+        write_report(core.load_results(options.report_only), options.report)
         return 0
 
     root = core.repo_root()
     bench_dir = root / "benchmarks"
     published = bench_dir / "results.json"
-    output = args.output or published
+    output = options.output or published
 
     # A timing-less document must never land on the file the page is built from:
     # --info-only has no timings by construction, and .#site renders whatever
     # benchmarks/results.json holds. Compared as resolved paths rather than by
     # "was -o given", so naming the file explicitly is refused too -- which file
     # gets written is the invariant, not how the caller chose it.
-    if args.info_only and output.resolve() == published.resolve():
+    if options.info_only and output.resolve() == published.resolve():
         raise core.BenchmarkError(f"--info-only writes no timings; -o must not be {published}")
 
     known = core.implementations(root)
-    names = list(args.impl) or known
+    names = list(options.impl or known)
     unknown = set(names) - set(known)
     if unknown:
         raise core.BenchmarkError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
-    overrides = {n: Path(v) for n, v in parse_pairs(args.binary, "--binary", "NAME=PATH", known).items()}
-    revisions = parse_pairs(args.revision, "--revision", "NAME=REV", known)
+    overrides = {n: Path(v) for n, v in parse_pairs(options.binary, "--binary", "NAME=PATH", known).items()}
+    revisions = parse_pairs(options.revision, "--revision", "NAME=REV", known)
     # --build refreshes the result-* symlinks, which an override bypasses.
-    if args.build:
+    if options.build:
         core.build(root, [n for n in names if n not in overrides])
     impls = core.discover(root, names, overrides, revisions)
     if not any(i.available for i in impls):
         raise core.BenchmarkError("no built implementations found; try --build")
-    inputs = core.load_corpus(root, args.corpus or bench_dir / "corpus.toml")
+    inputs = core.load_corpus(root, options.corpus or bench_dir / "corpus.toml")
     pairs = core.verify(impls, inputs)
-    hyperfine = None if args.info_only else core.benchmark(pairs, inputs, args.warmup, args.min_runs)
+    hyperfine = None if options.info_only else core.benchmark(pairs, inputs, options.warmup, options.min_runs)
     data = core.collect(impls, inputs, pairs, hyperfine)
 
     # A corpus none of whose inputs exist still produces a document, and that
@@ -109,7 +109,7 @@ def run(args: Options) -> int:
     # than let a fresh checkout quietly overwrite real numbers with a grid of
     # errors. Under --info-only the timings are absent by construction, so the
     # entity counts are what has to be there instead.
-    if args.info_only:
+    if options.info_only:
         if not any(p.ok for p in pairs):
             raise core.BenchmarkError("nothing was parsed; check the corpus paths")
     elif not any(p.timing for p in pairs):
@@ -120,24 +120,8 @@ def run(args: Options) -> int:
     # No default path: results.json is the only file this leaves in the tree.
     # Markdown and HTML are translations of it -- report.md goes to stdout
     # unless asked for, and the HTML is produced by `nix build .#site`.
-    write_report(data, args.report)
+    write_report(data, options.report)
     return 0
-
-
-def guarded(options: Options) -> int:
-    """Turn the expected failures into a message and an exit status."""
-    try:
-        return run(options)
-    except core.BenchmarkError as exc:
-        print(f"hbt-bench: {exc}", file=sys.stderr)
-        return 2
-    except subprocess.CalledProcessError as exc:
-        print(f"hbt-bench: {exc}", file=sys.stderr)
-        return 1
-    except KeyboardInterrupt:
-        # Click's own handler would abort with 1; a benchmark is long enough
-        # that being interrupted is ordinary, and 130 says which signal did it.
-        return 130
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
@@ -207,12 +191,23 @@ def guarded(options: Options) -> int:
 @click.version_option(bench.__version__, "--version", prog_name="hbt-bench")
 @click.pass_context
 def cli(ctx: click.Context, /, **kwargs: Any) -> None:
-    """Parse the command line into Options and run it.
+    """Parse the command line, run it, and turn the expected failures into a status.
 
     The help Click prints is set below, from the package docstring; this one
     describes the function.
     """
-    ctx.exit(guarded(Options(**kwargs)))
+    try:
+        ctx.exit(run(Options(**kwargs)))
+    except core.BenchmarkError as exc:
+        print(f"hbt-bench: {exc}", file=sys.stderr)
+        ctx.exit(2)
+    except subprocess.CalledProcessError as exc:
+        print(f"hbt-bench: {exc}", file=sys.stderr)
+        ctx.exit(1)
+    except KeyboardInterrupt:
+        # Click's own handler would abort with 1; a benchmark is long enough
+        # that being interrupted is ordinary, and 130 says which signal did it.
+        ctx.exit(130)
 
 
 # pyproject declares the package docstring as the distribution summary, so it
