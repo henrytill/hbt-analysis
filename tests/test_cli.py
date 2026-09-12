@@ -12,7 +12,9 @@ and fail at the first invocation. These tests are what notices.
 from __future__ import annotations
 
 import dataclasses
+import importlib
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -113,3 +115,17 @@ class Invocation(unittest.TestCase):
             result = self.runner.invoke(cli, ["--impl", "nope", "--info-only", "-o", str(self.root / "out.json")])
         self.assertEqual(result.exit_code, 2)
         self.assertIn("unknown implementation(s): nope", result.output)
+
+
+class EntryPoint(unittest.TestCase):
+    """`python -m hbt.bench` runs; importing the same module must not."""
+
+    def test_importing_the_entry_point_does_not_run_it(self) -> None:
+        """A doctest collector or a `walk_packages` sweep imports it by name.
+
+        Unguarded, Click would then parse that tool's argv and exit out from
+        under it, which reads as the collector crashing.
+        """
+        sys.modules.pop("hbt.bench.__main__", None)
+        with patch.object(sys, "argv", ["pytest", "--doctest-modules"]):
+            importlib.import_module("hbt.bench.__main__")
