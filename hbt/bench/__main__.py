@@ -2,25 +2,8 @@
 
 from __future__ import annotations
 
-import subprocess
-import sys
+from hbt.bench.cli import cli
 
-from hbt.bench import cli, core
-
-
-def main() -> int:
-    """Turn the expected failures into a message and an exit status."""
-    try:
-        return cli.run(cli.parse_args())
-    except core.BenchmarkError as exc:
-        print(f"hbt-bench: {exc}", file=sys.stderr)
-        return 2
-    except subprocess.CalledProcessError as exc:
-        print(f"hbt-bench: {exc}", file=sys.stderr)
-        return 1
-    except KeyboardInterrupt:
-        return 130
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+# Click supplies every parameter from the command line; pylint reads the
+# decorated function's signature and sees them missing.
+cli(prog_name="hbt-bench")  # pylint: disable=no-value-for-parameter

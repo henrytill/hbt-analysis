@@ -8,11 +8,11 @@ dynamic = ["version", "description"]
 readme = "README.md"
 authors = [{ name = "Henry Till", email = "henrytill@gmail.com" }]
 requires-python = ">=3.11"
-# jinja2 carries the report's prose and structure, tabulate renders its
-# tables; everything else is the standard library, tomllib for the corpus and
-# json for hyperfine's export. hyperfine itself is a runtime dependency,
-# supplied by the flake.
-dependencies = ["jinja2>=3.1.0", "tabulate>=0.9.0"]
+# click builds the command line, jinja2 carries the report's prose and
+# structure, tabulate renders its tables; everything else is the standard
+# library, tomllib for the corpus and json for hyperfine's export. hyperfine
+# itself is a runtime dependency, supplied by the flake.
+dependencies = ["click>=8.1", "jinja2>=3.1.0", "tabulate>=0.9.0"]
 
 [project.optional-dependencies]
 # types-tabulate because tabulate ships no py.typed and mypy runs strict;
@@ -28,7 +28,7 @@ dev = [
 test = []
 
 [project.scripts]
-hbt-bench = "hbt.bench.__main__:main"
+hbt-bench = "hbt.bench.cli:cli"
 
 # `hbt` is a PEP 420 namespace portion -- it has no __init__.py -- so flit
 # cannot infer the module from the distribution name, which would give it
