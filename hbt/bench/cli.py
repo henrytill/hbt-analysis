@@ -141,10 +141,22 @@ def guarded(options: Options) -> int:
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option("--corpus", type=click.Path(path_type=Path), help="corpus TOML (default: benchmarks/corpus.toml)")
-@click.option("-o", "--output", type=click.Path(path_type=Path), help="results JSON (default: benchmarks/results.json)")
 @click.option(
-    "-r", "--report", type=click.Path(path_type=Path), help="write the Markdown report here (default: stdout)"
+    "--corpus",
+    type=click.Path(path_type=Path),
+    help="corpus TOML (default: benchmarks/corpus.toml)",
+)
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(path_type=Path),
+    help="results JSON (default: benchmarks/results.json)",
+)
+@click.option(
+    "-r",
+    "--report",
+    type=click.Path(path_type=Path),
+    help="write the Markdown report here (default: stdout)",
 )
 @click.option(
     "--report-only",
@@ -152,8 +164,17 @@ def guarded(options: Options) -> int:
     metavar="RESULTS",
     help="re-render a saved results file",
 )
-@click.option("--build", is_flag=True, help="nix build each implementation first")
-@click.option("--impl", multiple=True, metavar="NAME", help="limit to this implementation (repeatable)")
+@click.option(
+    "--build",
+    is_flag=True,
+    help="nix build each implementation first",
+)
+@click.option(
+    "--impl",
+    multiple=True,
+    metavar="NAME",
+    help="limit to this implementation (repeatable)",
+)
 @click.option(
     "--binary",
     multiple=True,
@@ -166,9 +187,23 @@ def guarded(options: Options) -> int:
     metavar="NAME=REV",
     help="record REV as the revision NAME's binary was built from (repeatable)",
 )
-@click.option("--info-only", is_flag=True, help="run the --info stage and skip the timings (requires -o)")
-@click.option("--warmup", type=click.IntRange(min=0), default=20, show_default=True, help="hyperfine warmup runs")
-@click.option("--min-runs", type=click.IntRange(min=1), help="hyperfine minimum runs (default: hyperfine's own)")
+@click.option(
+    "--info-only",
+    is_flag=True,
+    help="run the --info stage and skip the timings (requires -o)",
+)
+@click.option(
+    "--warmup",
+    type=click.IntRange(min=0),
+    default=20,
+    show_default=True,
+    help="hyperfine warmup runs",
+)
+@click.option(
+    "--min-runs",
+    type=click.IntRange(min=1),
+    help="hyperfine minimum runs (default: hyperfine's own)",
+)
 @click.version_option(bench.__version__, "--version", prog_name="hbt-bench")
 @click.pass_context
 def cli(ctx: click.Context, /, **kwargs: Any) -> None:
