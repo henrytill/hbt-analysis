@@ -70,4 +70,4 @@ disable = [
 ]
 
 [tool.pyright]
-strict = ["hbt"]
+strict = ["hbt", "tests"]
