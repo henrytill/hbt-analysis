@@ -13,8 +13,8 @@ from typing import Any
 
 import click
 
-from hbt.analysis.commands import invoke, selection_options
-from hbt.analysis.implementations import CommandError, Selection, build, choose, discover, repo_root
+from hbt.analysis.commands import CommandError, invoke, selection_options
+from hbt.analysis.implementations import Selection, build, choose, discover, repo_root
 from hbt.bench import BenchmarkError, benchmark, collect, dump_results, load_corpus, load_results, render, verify
 
 

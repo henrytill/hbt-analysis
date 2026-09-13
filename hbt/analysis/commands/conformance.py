@@ -26,24 +26,21 @@ from typing import Any, Mapping, Sequence, TextIO
 
 import click
 
-from hbt.analysis.commands import invoke, selection_options
+from hbt.analysis.commands import CommandError, invoke, selection_options
 from hbt.analysis.implementations import (
-    CommandError,
     Impl,
+    ImplementationError,
     Selection,
     choose,
+    corpus_root,
     discover,
     parse_pairs,
     repo_root,
-    submodules,
 )
 from hbt.conformance import Corpus, CorpusError, Fixture, Outcome, Result, Run
 from hbt.conformance import __version__ as harness_version
 from hbt.conformance import check_corpus, read_waivers, revision
 from hbt.conformance.runner import DEFAULT_TIMEOUT
-
-# The repository an implementation's corpus submodule points at, by name.
-CORPUS_REPOSITORY = "hbt-data"
 
 # A cell with no result: the fixture is not in that implementation's corpus, or
 # the implementation could not be run.  One field wide, so every row of the
@@ -97,35 +94,6 @@ class Column:
         return ABSENT if result is None else result.outcome.value.upper()
 
 
-def _is_corpus(url: str) -> bool:
-    return url.rstrip("/").removesuffix(".git").rsplit("/", 1)[-1] == CORPUS_REPOSITORY
-
-
-def corpus_root(root: Path, name: str) -> Path:
-    """Where implementation `name` checks out the corpus it pins.
-
-    Read from its .gitmodules, by the URL, rather than from a table of paths:
-    the four mount the corpus at four different paths, and hbt-data#14 moves
-    each to `hbt-data/` in its own time, so any path written here would be
-    wrong for some of them throughout that migration.
-
-    Raises `CorpusError` with the reason when there is no single such
-    submodule, or it is not checked out.
-    """
-    gitmodules = root / name / ".gitmodules"
-    try:
-        paths = sorted(path for path, url in submodules(gitmodules).items() if _is_corpus(url))
-    except CommandError as exc:
-        raise CorpusError(str(exc)) from exc
-    if len(paths) != 1:
-        found = "none" if not paths else ", ".join(paths)
-        raise CorpusError(f"{gitmodules}: expected one {CORPUS_REPOSITORY} submodule, found {found}")
-    path = root / name / paths[0]
-    if not path.is_dir() or not any(path.iterdir()):
-        raise CorpusError(f"{path} is not checked out (git submodule update --init --recursive)")
-    return path
-
-
 def locate(root: Path, names: Sequence[str], override: Path | None) -> dict[str, Corpus | str]:
     """Each implementation's corpus, or why it has none.
 
@@ -142,7 +110,7 @@ def locate(root: Path, names: Sequence[str], override: Path | None) -> dict[str,
     for name in names:
         try:
             corpora[name] = Corpus.discover(corpus_root(root, name))
-        except CorpusError as exc:
+        except (CorpusError, ImplementationError) as exc:
             corpora[name] = str(exc)
     return corpora
 

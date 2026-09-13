@@ -16,9 +16,17 @@ from typing import Any, Callable, TypeVar
 
 import click
 
-from hbt.analysis.implementations import CommandError
+from hbt.analysis.implementations import ImplementationError
 
 F = TypeVar("F", bound=Callable[..., Any])
+
+
+class CommandError(Exception):
+    """A condition that should stop a command with a message, not a traceback.
+
+    Raised by a command for a refusal of its own; :func:`invoke` turns it into
+    exit status 2 for every command.
+    """
 
 
 def selection_options(command: F) -> F:
@@ -65,7 +73,7 @@ def invoke(ctx: click.Context, command: Callable[[], int]) -> None:
     """
     try:
         ctx.exit(command())
-    except CommandError as exc:
+    except (CommandError, ImplementationError) as exc:
         print(f"{ctx.command_path}: {exc}", file=sys.stderr)
         ctx.exit(2)
     except subprocess.CalledProcessError as exc:

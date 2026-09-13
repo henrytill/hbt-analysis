@@ -20,10 +20,9 @@ from typing import Any
 from unittest.mock import patch
 
 from hbt.analysis import implementations
-from hbt.analysis.commands import conformance
-from hbt.analysis.commands.conformance import Options, corpus_root, run
-from hbt.analysis.implementations import CommandError, Selection
-from hbt.conformance.corpus import CorpusError
+from hbt.analysis.commands import CommandError, conformance
+from hbt.analysis.commands.conformance import Options, run
+from hbt.analysis.implementations import ImplementationError, Selection, corpus_root
 
 DOCUMENT = """version: 0.1.0
 length: 0
@@ -65,13 +64,13 @@ class CorpusRoot(unittest.TestCase):
 
     def test_no_corpus_submodule_is_an_error(self) -> None:
         _submodule(self.gitmodules, "vendor", "vendor", "https://github.com/someone/else.git")
-        with self.assertRaisesRegex(CorpusError, "found none"):
+        with self.assertRaisesRegex(ImplementationError, "found none"):
             corpus_root(self.root, "hbt-x")
 
     def test_an_uninitialized_submodule_says_how_to_fix_it(self) -> None:
         _submodule(self.gitmodules, "hbt-data", "hbt-data", "https://github.com/henrytill/hbt-data")
         (self.root / "hbt-x" / "hbt-data").mkdir()
-        with self.assertRaisesRegex(CorpusError, "submodule update"):
+        with self.assertRaisesRegex(ImplementationError, "submodule update"):
             corpus_root(self.root, "hbt-x")
 
 
