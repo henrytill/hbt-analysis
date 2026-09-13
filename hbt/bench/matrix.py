@@ -19,8 +19,8 @@ implementation's own check cannot disagree about a fixture.
 from __future__ import annotations
 
 import sys
-from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 from typing import Mapping, Sequence, TextIO
 
@@ -29,10 +29,10 @@ import click
 from hbt import bench
 from hbt.bench import core
 from hbt.bench.cli import choose, invoke, parse_pairs
+from hbt.conformance import Corpus, CorpusError, Fixture, Outcome, Result, Run
 from hbt.conformance import __version__ as harness_version
-from hbt.conformance.cli import read_waivers
-from hbt.conformance.corpus import Corpus, CorpusError, Fixture, revision
-from hbt.conformance.runner import DEFAULT_TIMEOUT, Outcome, Result, check_all
+from hbt.conformance import check_corpus, read_waivers, revision
+from hbt.conformance.runner import DEFAULT_TIMEOUT
 
 # The repository an implementation's corpus submodule points at, by name.
 CORPUS_REPOSITORY = "hbt-data"
@@ -66,8 +66,8 @@ class Column:
 
     impl: core.Impl
     corpus: Corpus | None = None
-    results: dict[str, Result] = field(default_factory=dict[str, Result])
-    stale: tuple[str, ...] = ()
+    run: Run | None = None
+    """The verdict, which hbt.conformance reaches; present whenever the column is available."""
     error: str | None = None
     """Why there is no corpus; a missing binary is already the impl's error."""
 
@@ -79,7 +79,12 @@ class Column:
     @property
     def ok(self) -> bool:
         """Whether this implementation conformed on everything it was given."""
-        return self.unavailable is None and not self.stale and all(r.outcome.ok for r in self.results.values())
+        return self.unavailable is None and self.run is not None and self.run.ok
+
+    @cached_property
+    def results(self) -> dict[str, Result]:
+        """This column's results, by fixture name."""
+        return {} if self.run is None else {r.fixture.name: r for r in self.run.results}
 
     def cell(self, name: str) -> str:
         """What this column says about fixture `name`."""
@@ -116,17 +121,6 @@ def corpus_root(root: Path, name: str) -> Path:
     return path
 
 
-def _discover(path: Path) -> Corpus:
-    """The corpus at `path`, refusing one with no fixtures as hbt-conformance does.
-
-    A column over zero fixtures has nothing that can fail, so it would pass.
-    """
-    corpus = Corpus.discover(path)
-    if not corpus.fixtures:
-        raise CorpusError(f"no fixtures under {corpus.root} -- is that a corpus checkout?")
-    return corpus
-
-
 def locate(root: Path, names: Sequence[str], override: Path | None) -> dict[str, Corpus | str]:
     """Each implementation's corpus, or why it has none.
 
@@ -135,14 +129,14 @@ def locate(root: Path, names: Sequence[str], override: Path | None) -> dict[str,
     """
     if override is not None:
         try:
-            shared = _discover(override)
+            shared = Corpus.discover(override)
         except CorpusError as exc:
             raise core.BenchmarkError(str(exc)) from exc
         return dict.fromkeys(names, shared)
     corpora: dict[str, Corpus | str] = {}
     for name in names:
         try:
-            corpora[name] = _discover(corpus_root(root, name))
+            corpora[name] = Corpus.discover(corpus_root(root, name))
         except CorpusError as exc:
             corpora[name] = str(exc)
     return corpora
@@ -157,9 +151,8 @@ def check_column(
     if impl.binary is None:
         return Column(impl, corpus)
     waived = read_waivers(waivers) if waivers else {}
-    results = check_all(selected, impl.binary, options.timeout, options.tz, options.jobs, waived)
-    stale = tuple(sorted(set(waived) - {f.name for f in corpus.fixtures}))
-    return Column(impl, corpus, {r.fixture.name: r for r in results}, stale)
+    checked = check_corpus(corpus, impl.binary, selected, waived, options.timeout, options.tz, options.jobs)
+    return Column(impl, corpus, checked)
 
 
 def _widths(rows: Sequence[Sequence[str]]) -> list[int]:
@@ -223,23 +216,21 @@ def _matrix(columns: Sequence[Column], names: Sequence[str], quiet: bool, out: T
             if result is None or result.outcome is Outcome.PASS:
                 continue
             print(f"    {c.impl.name}: {result.reason}", file=out)
-            for difference in result.differences:
-                for text in difference.render().splitlines():
-                    print(f"        {text}", file=out)
+            for text in result.detail():
+                print(f"        {text}", file=out)
 
 
 def _totals(columns: Sequence[Column], out: TextIO) -> None:
     rows: list[tuple[str, str]] = []
     for c in columns:
-        if c.unavailable is not None:
+        if c.unavailable is not None or c.run is None:
             rows.append((c.impl.name, f"unavailable: {c.unavailable}"))
             continue
-        counts = Counter(r.outcome for r in c.results.values())
-        rows.append((c.impl.name, ", ".join(f"{counts[o]} {o.value}" for o in Outcome if counts[o]) or "nothing ran"))
+        rows.append((c.impl.name, c.run.summary() or "nothing ran"))
     print(file=out)
     _print_table(rows, out)
     for c in columns:
-        for name in c.stale:
+        for name in () if c.run is None else c.run.stale:
             print(f"warning: {c.impl.name} waives unknown fixture {name}", file=out)
 
 
