@@ -18,7 +18,6 @@ implementation's own check cannot disagree about a fixture.
 
 from __future__ import annotations
 
-import subprocess
 import sys
 from collections import Counter
 from dataclasses import dataclass, field
@@ -99,18 +98,10 @@ def corpus_root(root: Path, name: str) -> Path:
     submodule, or it is not checked out.
     """
     gitmodules = root / name / ".gitmodules"
-    out = subprocess.run(
-        ["git", "config", "--file", str(gitmodules), "--get-regexp", r"^submodule\..*\.(path|url)$"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    sections: dict[str, dict[str, str]] = {}
-    for line in out.stdout.splitlines():
-        key, _, value = line.partition(" ")
-        section, _, attribute = key.rpartition(".")
-        sections.setdefault(section, {})[attribute] = value
-    paths = sorted(s["path"] for s in sections.values() if "path" in s and _is_corpus(s.get("url", "")))
+    try:
+        paths = sorted(path for path, url in core.submodules(gitmodules).items() if _is_corpus(url))
+    except core.BenchmarkError as exc:
+        raise CorpusError(str(exc)) from exc
     if len(paths) != 1:
         found = "none" if not paths else ", ".join(paths)
         raise CorpusError(f"{gitmodules}: expected one {CORPUS_REPOSITORY} submodule, found {found}")

@@ -148,7 +148,7 @@ class Run(unittest.TestCase):
         status, output = self.run_matrix(binary=self.binaries())
         self.assertEqual(status, 1)
         self.assertRegex(output, r"markdown/a\s+PASS\s+-")
-        self.assertRegex(output, r"hbt-y\s+unavailable: .*found none")
+        self.assertRegex(output, r"hbt-y\s+unavailable: could not read")
 
     def test_list_runs_nothing(self) -> None:
         status, output = self.run_matrix(corpus=self.corpus, list_only=True)
