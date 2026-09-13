@@ -83,7 +83,7 @@ def parse_pairs(specs: tuple[str, ...], flag: str, shape: str, known: list[str])
     for spec in specs:
         name, sep, value = spec.partition("=")
         if not sep or name not in known:
-            raise core.BenchmarkError(f"{flag} expects {shape} with a known NAME, got {spec!r}")
+            raise core.CommandError(f"{flag} expects {shape} with a known NAME, got {spec!r}")
         parsed[name] = value
     return parsed
 
@@ -94,7 +94,7 @@ def choose(root: Path, selection: Selection) -> tuple[list[str], list[str], dict
     names = list(selection.impl or known)
     unknown = set(names) - set(known)
     if unknown:
-        raise core.BenchmarkError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
+        raise core.CommandError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
     overrides = {n: Path(v) for n, v in parse_pairs(selection.binary, "--binary", "NAME=PATH", known).items()}
     revisions = parse_pairs(selection.revision, "--revision", "NAME=REV", known)
     return known, names, overrides, revisions
@@ -110,7 +110,7 @@ def invoke(ctx: click.Context, command: Callable[[], int]) -> None:
     """
     try:
         ctx.exit(command())
-    except core.BenchmarkError as exc:
+    except core.CommandError as exc:
         print(f"{ctx.command_path}: {exc}", file=sys.stderr)
         ctx.exit(2)
     except subprocess.CalledProcessError as exc:

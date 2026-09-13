@@ -72,11 +72,11 @@ class Pairs(unittest.TestCase):
         self.assertEqual(parse_pairs(("hbt-rs=/bin/hbt",), "--binary", "NAME=PATH", ["hbt-rs"]), {"hbt-rs": "/bin/hbt"})
 
     def test_an_unknown_name_is_refused(self) -> None:
-        with self.assertRaisesRegex(core.BenchmarkError, "--binary"):
+        with self.assertRaisesRegex(core.CommandError, "--binary"):
             parse_pairs(("nope=/bin/hbt",), "--binary", "NAME=PATH", ["hbt-rs"])
 
     def test_a_value_without_an_equals_is_refused(self) -> None:
-        with self.assertRaisesRegex(core.BenchmarkError, "--revision"):
+        with self.assertRaisesRegex(core.CommandError, "--revision"):
             parse_pairs(("hbt-rs",), "--revision", "NAME=REV", ["hbt-rs"])
 
 

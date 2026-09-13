@@ -106,7 +106,7 @@ def corpus_root(root: Path, name: str) -> Path:
     gitmodules = root / name / ".gitmodules"
     try:
         paths = sorted(path for path, url in core.submodules(gitmodules).items() if _is_corpus(url))
-    except core.BenchmarkError as exc:
+    except core.CommandError as exc:
         raise CorpusError(str(exc)) from exc
     if len(paths) != 1:
         found = "none" if not paths else ", ".join(paths)
@@ -127,7 +127,7 @@ def locate(root: Path, names: Sequence[str], override: Path | None) -> dict[str,
         try:
             shared = Corpus.discover(override)
         except CorpusError as exc:
-            raise core.BenchmarkError(str(exc)) from exc
+            raise core.CommandError(str(exc)) from exc
         return dict.fromkeys(names, shared)
     corpora: dict[str, Corpus | str] = {}
     for name in names:
@@ -235,7 +235,7 @@ def _waiver_files(specs: tuple[str, ...], known: list[str]) -> dict[str, Path]:
     files = {n: Path(v) for n, v in parse_pairs(specs, "--waivers", "NAME=FILE", known).items()}
     for path in files.values():
         if not path.is_file():
-            raise core.BenchmarkError(f"--waivers: no such file {path}")
+            raise core.CommandError(f"--waivers: no such file {path}")
     return files
 
 
@@ -266,9 +266,9 @@ def run(selection: Selection, options: Options, out: TextIO) -> int:
     # A corpus is refused if it has no fixtures, so with one selected an empty
     # list can only mean the filters matched nothing.
     if not selected:
-        raise core.BenchmarkError("no implementation has a corpus to check")
+        raise core.CommandError("no implementation has a corpus to check")
     if not fixtures:
-        raise core.BenchmarkError(f"no fixture matches {' '.join(patterns)}")
+        raise core.CommandError(f"no fixture matches {' '.join(patterns)}")
 
     impls = core.discover(root, names, overrides, revisions)
     columns = [
