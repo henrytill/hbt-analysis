@@ -25,7 +25,7 @@ from click.testing import CliRunner
 from hbt.analysis import implementations
 from hbt.analysis.cli import cli
 from hbt.analysis.commands import bench, conformance
-from hbt.analysis.implementations import CommandError, Selection, parse_pairs
+from hbt.analysis.implementations import ImplementationError, Selection, parse_pairs
 from hbt.bench import FORMAT_VERSION
 from tests import binding
 
@@ -70,11 +70,11 @@ class Pairs(unittest.TestCase):
         self.assertEqual(parse_pairs(("hbt-rs=/bin/hbt",), "--binary", "NAME=PATH", ["hbt-rs"]), {"hbt-rs": "/bin/hbt"})
 
     def test_an_unknown_name_is_refused(self) -> None:
-        with self.assertRaisesRegex(CommandError, "--binary"):
+        with self.assertRaisesRegex(ImplementationError, "--binary"):
             parse_pairs(("nope=/bin/hbt",), "--binary", "NAME=PATH", ["hbt-rs"])
 
     def test_a_value_without_an_equals_is_refused(self) -> None:
-        with self.assertRaisesRegex(CommandError, "--revision"):
+        with self.assertRaisesRegex(ImplementationError, "--revision"):
             parse_pairs(("hbt-rs",), "--revision", "NAME=REV", ["hbt-rs"])
 
 

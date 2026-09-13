@@ -1,4 +1,4 @@
-"""The implementations: which there are, which a run names, and where their binaries are.
+"""The implementations: which there are, which a run names, and where their binaries and corpora are.
 
 What every command needs before it can run anything, and nothing either
 library knows: `hbt.bench` and `hbt.conformance` are both handed binaries, and
@@ -16,14 +16,15 @@ from typing import Any
 
 from hbt.bench import reported_version
 
+# The repository an implementation's corpus submodule points at, by name.
+CORPUS_REPOSITORY = "hbt-data"
 
-class CommandError(Exception):
-    """A condition that should stop a command with a message, not a traceback.
 
-    Every command's: `hbt.analysis.commands.invoke` turns it into exit status 2
-    for all of them, so a command refuses by raising this, and translates a
-    library's own error -- `hbt.bench.BenchmarkError`,
-    `hbt.conformance.CorpusError` -- into it.
+class ImplementationError(Exception):
+    """An implementation, or the selection of one, that cannot be used as asked.
+
+    This module's own, so that finding implementations does not depend on
+    how a command exits; `hbt.analysis.commands.invoke` treats it as a refusal.
     """
 
 
@@ -82,7 +83,7 @@ def submodules(gitmodules: Path) -> dict[str, str]:
         check=False,
     )
     if out.returncode != 0:
-        raise CommandError(f"could not read {gitmodules}")
+        raise ImplementationError(f"could not read {gitmodules}")
     sections: dict[str, dict[str, str]] = {}
     for line in out.stdout.splitlines():
         key, _, value = line.partition(" ")
@@ -105,7 +106,7 @@ def implementations(root: Path) -> list[str]:
     """
     names = sorted(submodules(root / ".gitmodules"))
     if not names:
-        raise CommandError(f"no submodules in {root / '.gitmodules'}")
+        raise ImplementationError(f"no submodules in {root / '.gitmodules'}")
     return names
 
 
@@ -121,7 +122,7 @@ def parse_pairs(specs: tuple[str, ...], flag: str, shape: str, known: list[str])
     for spec in specs:
         name, sep, value = spec.partition("=")
         if not sep or name not in known:
-            raise CommandError(f"{flag} expects {shape} with a known NAME, got {spec!r}")
+            raise ImplementationError(f"{flag} expects {shape} with a known NAME, got {spec!r}")
         parsed[name] = value
     return parsed
 
@@ -132,7 +133,7 @@ def choose(root: Path, selection: Selection) -> tuple[list[str], list[str], dict
     names = list(selection.impl or known)
     unknown = set(names) - set(known)
     if unknown:
-        raise CommandError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
+        raise ImplementationError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
     overrides = {n: Path(v) for n, v in parse_pairs(selection.binary, "--binary", "NAME=PATH", known).items()}
     revisions = parse_pairs(selection.revision, "--revision", "NAME=REV", known)
     return known, names, overrides, revisions
@@ -174,3 +175,29 @@ def discover(root: Path, names: list[str], overrides: dict[str, Path], revisions
         store = str(binary.resolve().parent.parent)
         impls.append(Impl(name, binary, store, reported_version([str(binary)]), revisions.get(name)))
     return impls
+
+
+def _is_corpus(url: str) -> bool:
+    return url.rstrip("/").removesuffix(".git").rsplit("/", 1)[-1] == CORPUS_REPOSITORY
+
+
+def corpus_root(root: Path, name: str) -> Path:
+    """Where implementation `name` checks out the corpus it pins.
+
+    Read from its .gitmodules, by the URL, rather than from a table of paths:
+    the four mount the corpus at four different paths, and hbt-data#14 moves
+    each to `hbt-data/` in its own time, so any path written here would be
+    wrong for some of them throughout that migration.
+
+    Raises :class:`ImplementationError` with the reason when there is no
+    single such submodule, or it is not checked out.
+    """
+    gitmodules = root / name / ".gitmodules"
+    paths = sorted(path for path, url in submodules(gitmodules).items() if _is_corpus(url))
+    if len(paths) != 1:
+        found = "none" if not paths else ", ".join(paths)
+        raise ImplementationError(f"{gitmodules}: expected one {CORPUS_REPOSITORY} submodule, found {found}")
+    path = root / name / paths[0]
+    if not path.is_dir() or not any(path.iterdir()):
+        raise ImplementationError(f"{path} is not checked out (git submodule update --init --recursive)")
+    return path
