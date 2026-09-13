@@ -11,19 +11,18 @@ and fail at the first invocation. These tests are what notices.
 
 from __future__ import annotations
 
-import dataclasses
 import importlib
 import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 from click.testing import CliRunner
 
-from hbt.bench import core
-from hbt.bench.benchmark import Options, bench
+from hbt.bench import benchmark, core, matrix
 from hbt.bench.cli import cli
 from hbt.bench.selection import Selection, parse_pairs
 from tests import binding
@@ -41,25 +40,27 @@ RESULTS = {
 }
 
 
+# Each command's own record. Every command also takes the shared Selection,
+# which is what lets the flake's apps hand them all the same arguments.
+OPTIONS: dict[str, type[Any]] = {"bench": benchmark.Options, "conformance": matrix.Options}
+
+
 class Binding(unittest.TestCase):
-    """The name contract, checked without running anything."""
+    """The name contract, checked for every command without running anything."""
+
+    def test_every_command_is_checked(self) -> None:
+        """A command added to the group without an entry here would go unchecked."""
+        self.assertEqual(set(cli.commands), set(OPTIONS))
 
     def test_every_option_names_a_field(self) -> None:
-        binding.assert_every_option_names_a_field(self, bench, Options, Selection)
+        for name, command in cli.commands.items():
+            with self.subTest(command=name):
+                binding.assert_every_option_names_a_field(self, command, OPTIONS[name], Selection)
 
     def test_the_defaults_agree(self) -> None:
-        binding.assert_the_defaults_agree(self, bench, Options, Selection)
-
-
-class Group(unittest.TestCase):
-    def test_the_group_offers_each_command(self) -> None:
-        self.assertEqual(set(cli.commands), {"bench", "conformance"})
-
-    def test_every_command_takes_the_whole_selection(self) -> None:
-        """The flake's apps hand every command the same --binary/--revision pairs."""
-        selection = {f.name for f in dataclasses.fields(Selection)}
         for name, command in cli.commands.items():
-            self.assertLessEqual(selection, {p.name for p in command.params}, name)
+            with self.subTest(command=name):
+                binding.assert_the_defaults_agree(self, command, OPTIONS[name], Selection)
 
 
 class Pairs(unittest.TestCase):
