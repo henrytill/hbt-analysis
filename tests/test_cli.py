@@ -11,7 +11,6 @@ and fail at the first invocation. These tests are what notices.
 
 from __future__ import annotations
 
-import dataclasses
 import importlib
 import json
 import sys
@@ -20,11 +19,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import click
 from click.testing import CliRunner
 
 from hbt.bench import core
 from hbt.bench.cli import Options, cli, parse_pairs
+from tests import binding
 
 RESULTS = {
     "version": core.FORMAT_VERSION,
@@ -42,30 +41,11 @@ RESULTS = {
 class Binding(unittest.TestCase):
     """The name contract, checked without running anything."""
 
-    def options(self) -> dict[str, object]:
-        return {f.name: f for f in dataclasses.fields(Options)}
-
     def test_every_option_names_a_field(self) -> None:
-        """A renamed flag would otherwise fail only when the command is run."""
-        exposed = {p.name for p in cli.params if p.expose_value}
-        self.assertEqual(exposed, set(self.options()))
+        binding.assert_every_option_names_a_field(self, cli, Options)
 
     def test_the_defaults_agree(self) -> None:
-        """Two copies of a default is one that can drift.
-
-        Click leaves an unstated default as a sentinel and passes None for
-        it, so only the ones actually spelled out on both sides compare --
-        which here is every option carrying a number.
-        """
-        fields = {f.name: f.default for f in dataclasses.fields(Options) if f.default is not dataclasses.MISSING}
-        compared = 0
-        for param in cli.params:
-            if not isinstance(param, click.Option) or param.is_flag or param.name not in fields:
-                continue
-            if isinstance(param.default, (int, float, str)):
-                self.assertEqual(param.default, fields[param.name], param.name)
-                compared += 1
-        self.assertTrue(compared, "no default was actually compared")
+        binding.assert_the_defaults_agree(self, cli, Options)
 
 
 class Pairs(unittest.TestCase):

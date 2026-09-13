@@ -153,6 +153,29 @@
         "type": "github"
       }
     },
+    "hbt-data": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1789267887,
+        "narHash": "sha256-2t5XBeW629DLwAnJ35nvzrOEEb61tnES31bp9adrAaI=",
+        "owner": "henrytill",
+        "repo": "hbt-data",
+        "rev": "f24f13c80e5223f0a8281f598b18f75931dbbba3",
+        "type": "github"
+      },
+      "original": {
+        "owner": "henrytill",
+        "repo": "hbt-data",
+        "type": "github"
+      }
+    },
     "hbt-go": {
       "inputs": {
         "flake-utils": "flake-utils_2",
@@ -476,6 +499,7 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
+        "hbt-data": "hbt-data",
         "hbt-go": "hbt-go",
         "hbt-hs": "hbt-hs",
         "hbt-ocaml": "hbt-ocaml",

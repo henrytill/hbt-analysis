@@ -6,7 +6,7 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import click
 
@@ -48,6 +48,24 @@ def parse_pairs(specs: tuple[str, ...], flag: str, shape: str, known: list[str])
     return parsed
 
 
+def choose(
+    root: Path, impl: tuple[str, ...], binary: tuple[str, ...], revision: tuple[str, ...]
+) -> tuple[list[str], list[str], dict[str, Path], dict[str, str]]:
+    """The known implementations, the ones a run names, and its overrides, validated.
+
+    Shared with hbt-matrix, which takes the same three flags so that the
+    flake's wrapper can hand both commands the same arguments.
+    """
+    known = core.implementations(root)
+    names = list(impl or known)
+    unknown = set(names) - set(known)
+    if unknown:
+        raise core.BenchmarkError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
+    overrides = {n: Path(v) for n, v in parse_pairs(binary, "--binary", "NAME=PATH", known).items()}
+    revisions = parse_pairs(revision, "--revision", "NAME=REV", known)
+    return known, names, overrides, revisions
+
+
 def write(path: Path, text: str) -> None:
     """Write a file this run produced, and say where it went."""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -86,13 +104,7 @@ def run(options: Options) -> int:
     if options.info_only and output.resolve() == published.resolve():
         raise core.BenchmarkError(f"--info-only writes no timings; -o must not be {published}")
 
-    known = core.implementations(root)
-    names = list(options.impl or known)
-    unknown = set(names) - set(known)
-    if unknown:
-        raise core.BenchmarkError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
-    overrides = {n: Path(v) for n, v in parse_pairs(options.binary, "--binary", "NAME=PATH", known).items()}
-    revisions = parse_pairs(options.revision, "--revision", "NAME=REV", known)
+    _, names, overrides, revisions = choose(root, options.impl, options.binary, options.revision)
     # --build refreshes the result-* symlinks, which an override bypasses.
     if options.build:
         core.build(root, [n for n in names if n not in overrides])
@@ -122,6 +134,26 @@ def run(options: Options) -> int:
     # unless asked for, and the HTML is produced by `nix build .#site`.
     write_report(data, options.report)
     return 0
+
+
+def invoke(ctx: click.Context, prog: str, command: Callable[[], int]) -> None:
+    """Run `command` and exit with its status, turning the expected failures into one.
+
+    Shared by every command in the package, so each exit status means the
+    same thing whichever of them returned it.
+    """
+    try:
+        ctx.exit(command())
+    except core.BenchmarkError as exc:
+        print(f"{prog}: {exc}", file=sys.stderr)
+        ctx.exit(2)
+    except subprocess.CalledProcessError as exc:
+        print(f"{prog}: {exc}", file=sys.stderr)
+        ctx.exit(1)
+    except KeyboardInterrupt:
+        # Click's own handler would abort with 1; a benchmark is long enough
+        # that being interrupted is ordinary, and 130 says which signal did it.
+        ctx.exit(130)
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
@@ -200,18 +232,7 @@ def cli(ctx: click.Context, /, **kwargs: Any) -> None:
     The help Click prints is set below, from the package docstring; this one
     describes the function.
     """
-    try:
-        ctx.exit(run(Options(**kwargs)))
-    except core.BenchmarkError as exc:
-        print(f"hbt-bench: {exc}", file=sys.stderr)
-        ctx.exit(2)
-    except subprocess.CalledProcessError as exc:
-        print(f"hbt-bench: {exc}", file=sys.stderr)
-        ctx.exit(1)
-    except KeyboardInterrupt:
-        # Click's own handler would abort with 1; a benchmark is long enough
-        # that being interrupted is ordinary, and 130 says which signal did it.
-        ctx.exit(130)
+    invoke(ctx, "hbt-bench", lambda: run(Options(**kwargs)))
 
 
 # pyproject declares the package docstring as the distribution summary, so it
