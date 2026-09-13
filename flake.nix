@@ -119,7 +119,7 @@
             builtins.match ".*__version__ = \"([^\"]+)\".*" (builtins.readFile ./hbt/bench/__init__.py)
           );
           pyproject = true;
-          build-system = [ pkgs.python3Packages.flit-core ];
+          build-system = [ pkgs.python3Packages.hatchling ];
           dependencies =
             (with pkgs.python3Packages; [
               click

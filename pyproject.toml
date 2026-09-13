@@ -1,10 +1,14 @@
 [build-system]
-requires = ["flit_core >=3.11,<5"]
-build-backend = "flit_core.buildapi"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "hbt-analysis"
-dynamic = ["version", "description"]
+# Stated here rather than read from the package docstring, which flit could
+# do and hatchling cannot. The command-line help is still that docstring, so
+# the two are copies of one sentence.
+description = "Benchmark the four hbt implementations, and hold them to the conformance corpus."
+dynamic = ["version"]
 readme = "README.md"
 authors = [{ name = "Henry Till", email = "henrytill@gmail.com" }]
 requires-python = ">=3.11"
@@ -34,11 +38,15 @@ test = []
 # `hbt-analysis conformance`.
 hbt-analysis = "hbt.bench.cli:cli"
 
-# `hbt` is a PEP 420 namespace portion -- it has no __init__.py -- so flit
-# cannot infer the module from the distribution name, which would give it
-# `hbt_analysis`. The dotted name names the package inside the namespace.
-[tool.flit.module]
-name = "hbt.bench"
+[tool.hatch.version]
+path = "hbt/bench/__init__.py"
+
+# `hbt` is a PEP 420 namespace portion -- it has no __init__.py -- so the
+# wheel has to carry the package at its path inside the namespace.
+# `only-include` rather than `packages`: hatchling collapses a `packages` path
+# to its last component, which would install this as a top-level `bench`.
+[tool.hatch.build.targets.wheel]
+only-include = ["hbt/bench"]
 
 [tool.black]
 line-length = 120

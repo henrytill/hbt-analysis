@@ -27,7 +27,7 @@ def cli() -> None:
 cli.add_command(benchmark.bench)
 cli.add_command(matrix.conformance)
 
-# pyproject declares the package docstring as the distribution summary, so it
-# is already the one-line description of this tool. Assigned rather than
-# repeated in the docstring above, where a second copy could drift from it.
+# The package docstring is the one-line description of this tool, also stated
+# as the distribution's description in pyproject. Assigned rather than
+# repeated in the docstring above, where a third copy could drift from it.
 cli.help = bench.__doc__
