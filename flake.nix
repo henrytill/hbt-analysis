@@ -76,14 +76,19 @@
       ...
     }@inputs:
     let
-      # Derived from the inputs rather than restated: the implementations have
-      # to be listed as inputs anyway, and a second literal list ten lines
-      # below is one more thing to keep in sync. Order is irrelevant here --
-      # the report's column order comes from hbt.bench.core. hbt-data shares
-      # the prefix and is the harness, not an implementation.
-      names = builtins.filter (name: nixpkgs.lib.hasPrefix "hbt-" name && name != "hbt-data") (
-        builtins.attrNames inputs
-      );
+      # The submodule paths in .gitmodules, which is where hbt.bench.core and
+      # both scripts read the set of implementations from, rather than a
+      # second literal list or a naming convention the hbt-data input already
+      # breaks. Each has to be an input of the same name too, and one that is
+      # not fails evaluation by name. Order is irrelevant here -- the report's
+      # column order comes from hbt.bench.core.
+      names = builtins.concatMap (
+        line:
+        let
+          path = builtins.match "[[:space:]]*path = (.+)" line;
+        in
+        if path == null then [ ] else path
+      ) (nixpkgs.lib.splitString "\n" (builtins.readFile ./.gitmodules));
     in
     flake-utils.lib.eachDefaultSystem (
       system:
