@@ -4,9 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hbt-analysis"
-# Stated here rather than read from the package docstring, which flit could
-# do and hatchling cannot. The command-line help is still that docstring, so
-# the two are copies of one sentence.
+# The same sentence as hbt/analysis/__init__.py's docstring, which is the
+# command-line help; hatchling cannot read a description from a docstring.
 description = "Benchmark the four hbt implementations, and hold them to the conformance corpus."
 dynamic = ["version"]
 readme = "README.md"
