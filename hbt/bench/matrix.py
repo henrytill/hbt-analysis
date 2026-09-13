@@ -116,6 +116,17 @@ def corpus_root(root: Path, name: str) -> Path:
     return path
 
 
+def _discover(path: Path) -> Corpus:
+    """The corpus at `path`, refusing one with no fixtures as hbt-conformance does.
+
+    A column over zero fixtures has nothing that can fail, so it would pass.
+    """
+    corpus = Corpus.discover(path)
+    if not corpus.fixtures:
+        raise CorpusError(f"no fixtures under {corpus.root} -- is that a corpus checkout?")
+    return corpus
+
+
 def locate(root: Path, names: Sequence[str], override: Path | None) -> dict[str, Corpus | str]:
     """Each implementation's corpus, or why it has none.
 
@@ -124,14 +135,14 @@ def locate(root: Path, names: Sequence[str], override: Path | None) -> dict[str,
     """
     if override is not None:
         try:
-            shared = Corpus.discover(override)
+            shared = _discover(override)
         except CorpusError as exc:
             raise core.BenchmarkError(str(exc)) from exc
         return dict.fromkeys(names, shared)
     corpora: dict[str, Corpus | str] = {}
     for name in names:
         try:
-            corpora[name] = Corpus.discover(corpus_root(root, name))
+            corpora[name] = _discover(corpus_root(root, name))
         except CorpusError as exc:
             corpora[name] = str(exc)
     return corpora
