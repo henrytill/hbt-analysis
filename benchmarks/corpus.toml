@@ -1,4 +1,4 @@
-# The default benchmark corpus for hbt-bench.
+# The default benchmark corpus for `hbt-analysis bench`.
 #
 # These are the author's private bookmark exports; they are in no repo and do
 # not exist in a fresh checkout. Point `path` wherever your own copies live, or

@@ -2,7 +2,18 @@
 
 Comparing four independent implementations of **hbt** ("Heterogeneous Bookmark Transformation"). Each implementation is a git submodule with its own upstream repo, its own flake, and its own toolchain; see [AGENTS.md](AGENTS.md) for the layout and for how to work inside them.
 
-This README used to be an org-babel notebook: one `#+begin_src sh` block per implementation per input, with hyperfine's terminal output pasted underneath by Emacs. That was brittle, Emacs-specific, and recorded no provenance — a timing sat in the file with no way to tell which build produced it. It has been replaced by `hbt-bench`.
+This README used to be an org-babel notebook: one `#+begin_src sh` block per implementation per input, with hyperfine's terminal output pasted underneath by Emacs. That was brittle, Emacs-specific, and recorded no provenance — a timing sat in the file with no way to tell which build produced it. It has been replaced by `hbt-analysis`.
+
+## The command line
+
+`hbt-analysis` is one executable with a command per job, because every job here runs over the same four implementations: `bench` times them, and `conformance` holds them to the corpus. Both take the same three options for choosing what they run over — `--impl NAME` to limit the set, `--binary NAME=PATH` to use a particular build, `--revision NAME=REV` to record which build it is — after the command name, like everything else they take:
+
+```sh
+hbt-analysis bench --impl hbt-rs --warmup 50
+hbt-analysis conformance --impl hbt-go -q
+```
+
+`nix run .#bench` and `nix run .#conformance` are those two commands with all four implementations built from the flake and passed in.
 
 ## Benchmarking
 
@@ -22,7 +33,7 @@ Inside the dev shell, run it from the working tree so edits take effect. There i
 
 ```sh
 nix develop
-python -m hbt.bench --build          # --build refreshes the symlinks first
+python -m hbt.bench bench --build    # --build refreshes the symlinks first
 ```
 
 ### Run it locally, publish from CI
@@ -66,7 +77,7 @@ The document is a Jinja template, `hbt/bench/report.md.j2` — the headings, the
 nix run .#conformance
 ```
 
-Builds the four implementations the same way `.#bench` does and holds each one to the [hbt-data](https://github.com/henrytill/hbt-data) corpus with `hbt-matrix`, one column per implementation, one row per fixture. The comparison is not reimplemented here: `hbt-matrix` imports `hbt.conformance`, the harness each implementation runs on its own, so the matrix and an implementation's own check cannot disagree about what a fixture means. It exits non-zero if any cell is not `PASS` or `XFAIL`.
+Builds the four implementations the same way `.#bench` does and holds each one to the [hbt-data](https://github.com/henrytill/hbt-data) corpus with `hbt-analysis conformance`, one column per implementation, one row per fixture. The comparison is not reimplemented here: the command imports `hbt.conformance`, the harness each implementation runs on its own, so the matrix and an implementation's own check cannot disagree about what a fixture means. It exits non-zero if any cell is not `PASS` or `XFAIL`.
 
 Each implementation is checked against the corpus **it** pins, found by URL in its own `.gitmodules`, not against one revision chosen here. The pins differ by design, so the header prints each column's corpus revision beside its build, and notes when they disagree. `--corpus DIR` checks all four against one directory instead — the way to ask whether everyone passes a corpus being edited. Waivers belong to an implementation, so they are given per column:
 
@@ -77,7 +88,7 @@ nix run .#conformance -- --corpus ../hbt-data                 # everyone, agains
 nix run .#conformance -- --waivers hbt-go=path/to/waivers     # per implementation
 ```
 
-Under `.#conformance` the binaries are the `flake.lock` revisions, while each corpus is read from the working tree's nested checkout. When the lock falls behind the gitlinks those can pair a binary with a corpus newer than the one it pins — the header shows both, and `nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs` realigns them. In the dev shell, `python -m hbt.bench.matrix` falls back to the `result-hbt-*` symlinks like `hbt-bench` does.
+Under `.#conformance` the binaries are the `flake.lock` revisions, while each corpus is read from the working tree's nested checkout. When the lock falls behind the gitlinks those can pair a binary with a corpus newer than the one it pins — the header shows both, and `nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs` realigns them. In the dev shell, `python -m hbt.bench conformance` falls back to the `result-hbt-*` symlinks as `bench` does.
 
 The harness itself is the `hbt-data` flake input, not a fifth submodule: a fifth entry in `.gitmodules` would read as a fifth implementation to everything that derives the set from it. To see an unreleased harness change in the matrix, point the input at a checkout with `--override-input hbt-data path:../hbt-data`.
 
@@ -91,7 +102,7 @@ The cost is a third layer of pinning. `flake.lock` records a rev for each implem
 nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs
 ```
 
-`inputs.self.submodules = true` is set, so `self` is the tree *with* the submodules rather than with four empty directories. The usual cost of setting it — every submodule tree landing in `src = self` — does not apply here: the `hbt-bench` derivation takes a `lib.fileset`-filtered source of just `hbt/bench/`, `pyproject.toml`, and this README, so it stays a few tens of kilobytes rather than the size of the four submodule trees, and does not rebuild when a pointer moves.
+`inputs.self.submodules = true` is set, so `self` is the tree *with* the submodules rather than with four empty directories. The usual cost of setting it — every submodule tree landing in `src = self` — does not apply here: the `hbt-analysis` derivation takes a `lib.fileset`-filtered source of just `hbt/bench/`, `pyproject.toml`, and this README, so it stays a few tens of kilobytes rather than the size of the four submodule trees, and does not rebuild when a pointer moves.
 
 The `git+file:` inputs emit a deprecation warning ([NixOS/nix#12281](https://github.com/NixOS/nix/issues/12281)). That issue prescribes replacing them with `inputs.self.submodules = true` plus a bare path literal (`hbt-rs.url = ./hbt-rs`), which is half of what is already here — but the other half does not work: `hbt-go` then fails to evaluate with `attribute 'dirtyShortRev' missing`, because three of the four subflakes read their version out of `self`'s git metadata and a path input has none. Making the prescribed form usable means teaching the four upstreams to tolerate a revision-less `self`. Until then the warning is ignorable, which is also what the Nix maintainers say on that issue.
 
@@ -101,8 +112,8 @@ The companion warning about not reading HEAD is benign: detaching `hbt-go` three
 
 | Path | What |
 |---|---|
-| `hbt/bench/` | the benchmark harness and the conformance matrix (Python, flit); `hbt` is a PEP 420 namespace portion, so it has no `__init__.py` |
+| `hbt/bench/` | `hbt-analysis` (Python, flit): `cli.py` gathers the commands, `benchmark.py` and `matrix.py` are `bench` and `conformance`, `selection.py` is what they share; `hbt` is a PEP 420 namespace portion, so it has no `__init__.py` |
 | `benchmarks/` | corpus definitions, `results.json`, and the pandoc defaults for the page |
 | `scripts/` | submodule pointer maintenance (bash) |
-| `flake.nix` | the harness, the dev shell, `.#bench`, `.#conformance`, and `.#site` |
+| `flake.nix` | `hbt-analysis`, the dev shell, `.#bench`, `.#conformance`, and `.#site` |
 | `hbt-{hs,go,ocaml,rs}/` | the implementations, as submodules |

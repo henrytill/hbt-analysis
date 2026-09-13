@@ -3,7 +3,7 @@ requires = ["flit_core >=3.11,<5"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "hbt-bench"
+name = "hbt-analysis"
 dynamic = ["version", "description"]
 readme = "README.md"
 authors = [{ name = "Henry Till", email = "henrytill@gmail.com" }]
@@ -12,8 +12,8 @@ requires-python = ">=3.11"
 # structure, tabulate renders its tables; everything else is the standard
 # library, tomllib for the corpus and json for hyperfine's export. hyperfine
 # itself is a runtime dependency, supplied by the flake. hbt-conformance is
-# henrytill/hbt-data's harness, which hbt-matrix imports; it is on no index, so
-# the flake supplies that too.
+# henrytill/hbt-data's harness, which the conformance command imports; it is on
+# no index, so the flake supplies that too.
 dependencies = ["click>=8.1", "jinja2>=3.1.0", "tabulate>=0.9.0", "hbt-conformance"]
 
 [project.optional-dependencies]
@@ -30,12 +30,13 @@ dev = [
 test = []
 
 [project.scripts]
-hbt-bench = "hbt.bench.cli:cli"
-hbt-matrix = "hbt.bench.matrix:cli"
+# One executable, with a command per job: `hbt-analysis bench` and
+# `hbt-analysis conformance`.
+hbt-analysis = "hbt.bench.cli:cli"
 
 # `hbt` is a PEP 420 namespace portion -- it has no __init__.py -- so flit
 # cannot infer the module from the distribution name, which would give it
-# `hbt_bench`. The dotted name names the package inside the namespace.
+# `hbt_analysis`. The dotted name names the package inside the namespace.
 [tool.flit.module]
 name = "hbt.bench"
 

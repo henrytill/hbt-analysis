@@ -11,6 +11,7 @@ and fail at the first invocation. These tests are what notices.
 
 from __future__ import annotations
 
+import dataclasses
 import importlib
 import json
 import sys
@@ -22,7 +23,9 @@ from unittest.mock import patch
 from click.testing import CliRunner
 
 from hbt.bench import core
-from hbt.bench.cli import Options, cli, parse_pairs
+from hbt.bench.benchmark import Options, bench
+from hbt.bench.cli import cli
+from hbt.bench.selection import Selection, parse_pairs
 from tests import binding
 
 RESULTS = {
@@ -42,10 +45,26 @@ class Binding(unittest.TestCase):
     """The name contract, checked without running anything."""
 
     def test_every_option_names_a_field(self) -> None:
-        binding.assert_every_option_names_a_field(self, cli, Options)
+        binding.assert_every_option_names_a_field(self, bench, Options, Selection)
 
     def test_the_defaults_agree(self) -> None:
-        binding.assert_the_defaults_agree(self, cli, Options)
+        binding.assert_the_defaults_agree(self, bench, Options, Selection)
+
+
+class Group(unittest.TestCase):
+    def test_the_group_offers_each_command(self) -> None:
+        self.assertEqual(set(cli.commands), {"bench", "conformance"})
+
+    def test_every_command_takes_the_whole_selection(self) -> None:
+        """The flake's apps hand every command the same --binary/--revision pairs."""
+        selection = {f.name for f in dataclasses.fields(Selection)}
+        for name, command in cli.commands.items():
+            self.assertLessEqual(selection, {p.name for p in command.params}, name)
+
+    def test_an_error_names_the_command_that_refused(self) -> None:
+        result = CliRunner().invoke(cli, ["bench", "--report-only", "/nonexistent.json"], prog_name="hbt-analysis")
+        self.assertEqual(result.exit_code, 2)
+        self.assertIn("hbt-analysis bench: ", result.output)
 
 
 class Pairs(unittest.TestCase):
@@ -69,20 +88,20 @@ class Invocation(unittest.TestCase):
     def test_report_only_renders_a_saved_document(self) -> None:
         saved = self.root / "results.json"
         saved.write_text(json.dumps(RESULTS), encoding="utf-8")
-        result = self.runner.invoke(cli, ["--report-only", str(saved)])
+        result = self.runner.invoke(cli, ["bench", "--report-only", str(saved)])
         self.assertEqual(result.exit_code, 0)
         self.assertIn("# hbt benchmark", result.output)
         self.assertIn("hbt-rs", result.output)
 
     def test_report_only_needs_a_file_that_exists(self) -> None:
-        result = self.runner.invoke(cli, ["--report-only", str(self.root / "gone.json")])
+        result = self.runner.invoke(cli, ["bench", "--report-only", str(self.root / "gone.json")])
         self.assertEqual(result.exit_code, 2)
         self.assertIn("no such results file", result.output)
 
     def test_info_only_refuses_the_published_results_file(self) -> None:
         """A document with no timings must never become the published one."""
         with patch.object(core, "repo_root", return_value=self.root):
-            result = self.runner.invoke(cli, ["--info-only"])
+            result = self.runner.invoke(cli, ["bench", "--info-only"])
         self.assertEqual(result.exit_code, 2)
         self.assertIn("--info-only writes no timings", result.output)
 
@@ -92,7 +111,9 @@ class Invocation(unittest.TestCase):
             patch.object(core, "repo_root", return_value=self.root),
             patch.object(core, "implementations", return_value=["hbt-rs"]),
         ):
-            result = self.runner.invoke(cli, ["--impl", "nope", "--info-only", "-o", str(self.root / "out.json")])
+            result = self.runner.invoke(
+                cli, ["bench", "--impl", "nope", "--info-only", "-o", str(self.root / "out.json")]
+            )
         self.assertEqual(result.exit_code, 2)
         self.assertIn("unknown implementation(s): nope", result.output)
 

@@ -16,10 +16,12 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 from hbt.bench import core
-from hbt.bench.matrix import Options, cli, corpus_root, run
+from hbt.bench.matrix import Options, conformance, corpus_root, run
+from hbt.bench.selection import Selection
 from hbt.conformance.corpus import CorpusError
 from tests import binding
 
@@ -44,10 +46,10 @@ value:
 
 class Binding(unittest.TestCase):
     def test_every_option_names_a_field(self) -> None:
-        binding.assert_every_option_names_a_field(self, cli, Options)
+        binding.assert_every_option_names_a_field(self, conformance, Options, Selection)
 
     def test_the_defaults_agree(self) -> None:
-        binding.assert_the_defaults_agree(self, cli, Options)
+        binding.assert_the_defaults_agree(self, conformance, Options, Selection)
 
 
 def _submodule(gitmodules: Path, name: str, path: str, url: str) -> None:
@@ -100,10 +102,10 @@ class Run(unittest.TestCase):
         path.chmod(path.stat().st_mode | stat.S_IXUSR)
         return str(path)
 
-    def run_matrix(self, **kwargs: object) -> tuple[int, str]:
+    def run_matrix(self, binary: tuple[str, ...] = (), **kwargs: Any) -> tuple[int, str]:
         out = io.StringIO()
         with patch("sys.stderr", io.StringIO()):
-            status = run(Options(**kwargs), out)  # type: ignore[arg-type]
+            status = run(Selection(binary=binary), Options(**kwargs), out)
         return status, out.getvalue()
 
     def binaries(self) -> tuple[str, ...]:

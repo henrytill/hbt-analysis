@@ -1,4 +1,4 @@
-"""Benchmark the four hbt implementations against a shared corpus."""
+"""Benchmark the four hbt implementations, and hold them to the conformance corpus."""
 
 # Checked in rather than generated. The other Python projects here derive this
 # from VERSION and the git ref via run.py; this package is a local tool that is
