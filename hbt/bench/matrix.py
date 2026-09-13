@@ -65,16 +65,21 @@ class Column:
     """One implementation's results, or the reason it has none."""
 
     impl: core.Impl
-    corpus_revision: str | None = None
-    corpus_size: int = 0
+    corpus: Corpus | None = None
     results: dict[str, Result] = field(default_factory=dict[str, Result])
     stale: tuple[str, ...] = ()
     error: str | None = None
+    """Why there is no corpus; a missing binary is already the impl's error."""
+
+    @property
+    def unavailable(self) -> str | None:
+        """Why this implementation could not be checked, if it could not."""
+        return self.error or self.impl.error
 
     @property
     def ok(self) -> bool:
         """Whether this implementation conformed on everything it was given."""
-        return self.error is None and not self.stale and all(r.outcome.ok for r in self.results.values())
+        return self.unavailable is None and not self.stale and all(r.outcome.ok for r in self.results.values())
 
     def cell(self, name: str) -> str:
         """What this column says about fixture `name`."""
@@ -138,13 +143,12 @@ def check_column(
     """Run one implementation over its selected fixtures."""
     if isinstance(corpus, str):
         return Column(impl, error=corpus)
-    rev = revision(corpus.root)
     if impl.binary is None:
-        return Column(impl, rev, len(corpus.fixtures), error=impl.error)
+        return Column(impl, corpus)
     waived = read_waivers(waivers) if waivers else {}
     results = check_all(selected, impl.binary, options.timeout, options.tz, options.jobs, waived)
     stale = tuple(sorted(set(waived) - {f.name for f in corpus.fixtures}))
-    return Column(impl, rev, len(corpus.fixtures), {r.fixture.name: r for r in results}, stale)
+    return Column(impl, corpus, {r.fixture.name: r for r in results}, stale)
 
 
 def _widths(rows: Sequence[Sequence[str]]) -> list[int]:
@@ -175,12 +179,13 @@ def _header(columns: Sequence[Column], tz: str | None, out: TextIO) -> None:
         print(f"TZ       {tz}", file=out)
     print(file=out)
     rows = [("", "corpus", "fixtures", "binary", "build")]
-    for c in columns:
-        fixtures = f"{len(c.results)} of {c.corpus_size}" if c.corpus_revision else ABSENT
+    revisions = [ABSENT if c.corpus is None else revision(c.corpus.root) for c in columns]
+    for c, rev in zip(columns, revisions):
+        fixtures = ABSENT if c.corpus is None else f"{len(c.results)} of {len(c.corpus.fixtures)}"
         build = (c.impl.revision or "")[:7] or c.impl.version or ABSENT
-        rows.append((c.impl.name, c.corpus_revision or ABSENT, fixtures, str(c.impl.binary or ABSENT), build))
+        rows.append((c.impl.name, rev, fixtures, str(c.impl.binary or ABSENT), build))
     _print_table(rows, out)
-    pinned = {c.corpus_revision for c in columns if c.corpus_revision}
+    pinned = set(revisions) - {ABSENT}
     if len(pinned) > 1:
         print(f"\nnote: {len(pinned)} different corpus revisions are pinned", file=out)
 
@@ -214,8 +219,8 @@ def _matrix(columns: Sequence[Column], names: Sequence[str], quiet: bool, out: T
 def _totals(columns: Sequence[Column], out: TextIO) -> None:
     rows: list[tuple[str, str]] = []
     for c in columns:
-        if c.error is not None:
-            rows.append((c.impl.name, f"unavailable: {c.error}"))
+        if c.unavailable is not None:
+            rows.append((c.impl.name, f"unavailable: {c.unavailable}"))
             continue
         counts = Counter(r.outcome for r in c.results.values())
         rows.append((c.impl.name, ", ".join(f"{counts[o]} {o.value}" for o in Outcome if counts[o]) or "nothing ran"))
