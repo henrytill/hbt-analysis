@@ -163,6 +163,15 @@
         # corpus is read from the working tree's nested checkout, so a lock
         # behind the gitlinks can pair a binary with a newer corpus than the
         # one it pins; the header prints both so that shows.
+        #
+        # `commands` is the one list the wrappers and the apps are both built
+        # from. hbt/bench/cli.py is the authority on it: the build runs each
+        # wrapper's --help, which Click answers before validating anything, so
+        # a name the group does not have fails here rather than at nix run.
+        commands = [
+          "bench"
+          "conformance"
+        ];
         selectionFlags = pkgs.lib.concatMapStringsSep " " (
           name:
           ''--add-flags "--binary ${name}=${cliPackage name}/bin/hbt" --add-flags "--revision ${name}=${inputs.${name}.rev}"''
@@ -173,10 +182,11 @@
               nativeBuildInputs = [ pkgs.makeWrapper ];
             }
             ''
-              for command in bench conformance; do
+              for command in ${pkgs.lib.escapeShellArgs commands}; do
                 makeWrapper ${hbtAnalysis}/bin/hbt-analysis "$out/bin/hbt-analysis-$command" \
                   --add-flags "$command" \
                   ${selectionFlags}
+                "$out/bin/hbt-analysis-$command" --help > /dev/null
               done
             '';
 
@@ -207,15 +217,14 @@
         packages.site = site;
         packages.default = hbtAnalysis;
 
-        apps.bench = {
-          type = "app";
-          program = "${withImplementations}/bin/hbt-analysis-bench";
-        };
-        apps.conformance = {
-          type = "app";
-          program = "${withImplementations}/bin/hbt-analysis-conformance";
-        };
-        apps.default = self.apps.${system}.bench;
+        apps =
+          pkgs.lib.genAttrs commands (command: {
+            type = "app";
+            program = "${withImplementations}/bin/hbt-analysis-${command}";
+          })
+          // {
+            default = self.apps.${system}.bench;
+          };
 
         # A flake check rather than a build step, so mypy is not a build input
         # of everything that consumes hbt-analysis.
