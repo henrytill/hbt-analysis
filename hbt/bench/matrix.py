@@ -276,11 +276,12 @@ def run(options: Options, out: TextIO) -> int:
         _list(corpora, fixtures, out)
         return 0
 
+    # A corpus is refused if it has no fixtures, so with one selected an empty
+    # list can only mean the filters matched nothing.
+    if not selected:
+        raise core.BenchmarkError("no implementation has a corpus to check")
     if not fixtures:
-        if selected and patterns:
-            raise core.BenchmarkError(f"no fixture matches {' '.join(patterns)}")
-        if not selected:
-            raise core.BenchmarkError("no implementation has a corpus to check")
+        raise core.BenchmarkError(f"no fixture matches {' '.join(patterns)}")
 
     impls = core.discover(root, names, overrides, revisions)
     columns = [
