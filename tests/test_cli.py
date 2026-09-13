@@ -118,6 +118,18 @@ class Invocation(unittest.TestCase):
         self.assertEqual(result.exit_code, 2)
         self.assertIn("unknown implementation(s): nope", result.output)
 
+    def test_an_empty_corpus_is_refused_through_the_conformance_command(self) -> None:
+        """The harness raises its own CorpusError, which invoke has to treat as a refusal."""
+        (self.root / "empty" / "markdown").mkdir(parents=True)
+        with (
+            patch.object(conformance, "repo_root", return_value=self.root),
+            patch.object(implementations, "implementations", return_value=["hbt-rs"]),
+        ):
+            args = ["conformance", "--corpus", str(self.root / "empty")]
+            result = self.runner.invoke(cli, args, prog_name="hbt-analysis")
+        self.assertEqual(result.exit_code, 2)
+        self.assertIn("hbt-analysis conformance: no fixtures under", result.output)
+
 
 class EntryPoint(unittest.TestCase):
     """`python -m hbt.analysis` runs; importing the same module must not."""
