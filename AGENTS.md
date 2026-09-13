@@ -168,7 +168,7 @@ Each submodule carries its own: `.ocamlformat` plus `.prettierrc.cjs` for the JS
 
 ### The root
 
-Python in `hbt/` follows the same conventions as the author's other Python projects (`henrytill/pagewielder`, `henrytill/ananke-py`), with one exception: the build backend is hatchling rather than flit-core, because flit builds one import package per project and this one ships two (`hbt.analysis` and `hbt.bench`). hatchling cannot read the description from a docstring, so it is stated in `pyproject.toml` and `dynamic` is only `["version"]`. Otherwise: black at **line-length 120**, isort with the black profile, flake8 (`.flake8`, `extend-ignore = E203`), mypy `strict`, pylint at 120 with a small disable list, and pyright `strict`. All of them are in the root dev shell, and all of them pass clean — keep it that way:
+Python in `hbt/` follows the same conventions as the author's other Python projects (`henrytill/pagewielder`, `henrytill/ananke-py`), with one exception: the build backend is hatchling rather than flit-core, which the wheel section of `pyproject.toml` explains. Otherwise: black at **line-length 120**, isort with the black profile, flake8 (`.flake8`, `extend-ignore = E203`), mypy `strict`, pylint at 120 with a small disable list, and pyright `strict`. All of them are in the root dev shell, and all of them pass clean — keep it that way:
 
 ```sh
 nix develop
@@ -178,14 +178,12 @@ python3 -m unittest discover -s tests -t .
 
 The set of implementations is read from `.gitmodules` at runtime, the same way `scripts/update-submodules.sh` and `scripts/open-submodule-pr.sh` do it — adding or removing a submodule needs no edit in `hbt/`, and `flake.nix` reads the same file, so each submodule path must also be a flake input of that name. Report columns are sorted, so `.gitmodules` ordering does not leak into the output.
 
-`hbt/analysis/__init__.py`'s version is checked in rather than generated: the sibling projects derive `__version__` from a `VERSION` file and the git ref via a `run.py`, and this package is a local tool that is never distributed, so it does not carry that machinery.
-
 `hbt` is a [PEP 420](https://peps.python.org/pep-0420/) namespace portion: it deliberately has **no `__init__.py`**, and this repository contributes two members to it.
 
 - **`hbt.bench`** is the benchmark library — `timing.py`, `results.py`, `report.py` and its template. It is handed implementations through a small `Implementation` protocol (a name, a binary, provenance to record) and knows nothing of `.gitmodules`, `result-hbt-*` or Click, the way `hbt.conformance` — which joins the namespace from the `hbt-data` flake input — is handed a binary. Its errors are its own `BenchmarkError`.
 - **`hbt.analysis`** is the `hbt-analysis` executable, a Click group driving both libraries: `cli.py` gathers the commands; `commands/bench.py` and `commands/conformance.py` are the two commands; `commands/__init__.py` holds what they share — the `--impl`/`--binary`/`--revision` options, deliberately on each command rather than the group (the `selection_options` docstring says why), and the exit-status handling, which treats `CommandError`, `ImplementationError` and each library's own error alike as a refusal; and `implementations.py` finds the implementations, their binaries and their pinned corpora.
 
-Both ship in the one `hbt-analysis` distribution, which is why the build backend is hatchling: `[tool.hatch.build.targets.wheel] only-include` lists each package at its namespace path. The checkers cannot infer the namespace root on their own and would read `hbt/analysis` as a top-level `analysis` — mypy needs `explicit_package_bases`, pylint needs `source-roots = ["."]`, and both are set in `pyproject.toml`. `checks.mypy` in `flake.nix` builds its own directory to get trees at `hbt/analysis` and `hbt/bench`, and points mypy at `pyproject.toml` with `--config-file` so it runs the same check the dev shell does rather than a second opinion assembled from flags.
+Both ship in the one `hbt-analysis` distribution. The checkers cannot infer the namespace root on their own and would read `hbt/analysis` as a top-level `analysis` — mypy needs `explicit_package_bases`, pylint needs `source-roots = ["."]`, and both are set in `pyproject.toml`. `checks.mypy` in `flake.nix` builds its own directory to get trees at `hbt/analysis` and `hbt/bench`, and points mypy at `pyproject.toml` with `--config-file` so it runs the same check the dev shell does rather than a second opinion assembled from flags.
 
 Bash in `scripts/` uses **hard tabs, tab-width 8**. `shellcheck` and `shfmt` are in the root dev shell; the flag set that matches the existing style is:
 

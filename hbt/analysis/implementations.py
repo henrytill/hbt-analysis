@@ -1,9 +1,4 @@
-"""The implementations: which there are, which a run names, and where their binaries and corpora are.
-
-What every command needs before it can run anything, and nothing either
-library knows: `hbt.bench` and `hbt.conformance` are both handed binaries, and
-this is where they come from.
-"""
+"""The implementations: which there are, which a run names, and where their binaries and corpora are."""
 
 from __future__ import annotations
 
