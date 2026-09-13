@@ -6,7 +6,7 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import click
 
@@ -136,6 +136,26 @@ def run(options: Options) -> int:
     return 0
 
 
+def invoke(ctx: click.Context, prog: str, command: Callable[[], int]) -> None:
+    """Run `command` and exit with its status, turning the expected failures into one.
+
+    Shared by every command in the package, so each exit status means the
+    same thing whichever of them returned it.
+    """
+    try:
+        ctx.exit(command())
+    except core.BenchmarkError as exc:
+        print(f"{prog}: {exc}", file=sys.stderr)
+        ctx.exit(2)
+    except subprocess.CalledProcessError as exc:
+        print(f"{prog}: {exc}", file=sys.stderr)
+        ctx.exit(1)
+    except KeyboardInterrupt:
+        # Click's own handler would abort with 1; a benchmark is long enough
+        # that being interrupted is ordinary, and 130 says which signal did it.
+        ctx.exit(130)
+
+
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option(
     "--corpus",
@@ -212,18 +232,7 @@ def cli(ctx: click.Context, /, **kwargs: Any) -> None:
     The help Click prints is set below, from the package docstring; this one
     describes the function.
     """
-    try:
-        ctx.exit(run(Options(**kwargs)))
-    except core.BenchmarkError as exc:
-        print(f"hbt-bench: {exc}", file=sys.stderr)
-        ctx.exit(2)
-    except subprocess.CalledProcessError as exc:
-        print(f"hbt-bench: {exc}", file=sys.stderr)
-        ctx.exit(1)
-    except KeyboardInterrupt:
-        # Click's own handler would abort with 1; a benchmark is long enough
-        # that being interrupted is ordinary, and 130 says which signal did it.
-        ctx.exit(130)
+    invoke(ctx, "hbt-bench", lambda: run(Options(**kwargs)))
 
 
 # pyproject declares the package docstring as the distribution summary, so it
