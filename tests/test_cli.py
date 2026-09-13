@@ -61,11 +61,6 @@ class Group(unittest.TestCase):
         for name, command in cli.commands.items():
             self.assertLessEqual(selection, {p.name for p in command.params}, name)
 
-    def test_an_error_names_the_command_that_refused(self) -> None:
-        result = CliRunner().invoke(cli, ["bench", "--report-only", "/nonexistent.json"], prog_name="hbt-analysis")
-        self.assertEqual(result.exit_code, 2)
-        self.assertIn("hbt-analysis bench: ", result.output)
-
 
 class Pairs(unittest.TestCase):
     def test_a_known_name_parses(self) -> None:
@@ -94,8 +89,11 @@ class Invocation(unittest.TestCase):
         self.assertIn("hbt-rs", result.output)
 
     def test_report_only_needs_a_file_that_exists(self) -> None:
-        result = self.runner.invoke(cli, ["bench", "--report-only", str(self.root / "gone.json")])
+        """The message also names the command that refused."""
+        args = ["bench", "--report-only", str(self.root / "gone.json")]
+        result = self.runner.invoke(cli, args, prog_name="hbt-analysis")
         self.assertEqual(result.exit_code, 2)
+        self.assertIn("hbt-analysis bench: ", result.output)
         self.assertIn("no such results file", result.output)
 
     def test_info_only_refuses_the_published_results_file(self) -> None:
