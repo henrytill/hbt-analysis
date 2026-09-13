@@ -28,7 +28,7 @@ import click
 
 from hbt import bench
 from hbt.bench import core
-from hbt.bench.cli import choose, parse_pairs
+from hbt.bench.cli import choose, invoke, parse_pairs
 from hbt.conformance import __version__ as harness_version
 from hbt.conformance.cli import read_waivers
 from hbt.conformance.corpus import Corpus, CorpusError, Fixture, revision
@@ -365,13 +365,7 @@ def cli(ctx: click.Context, /, **kwargs: object) -> None:
     FILTER selects fixtures by name, substring or glob; every fixture runs if
     none is given.
     """
-    try:
-        ctx.exit(run(Options(**kwargs), sys.stdout))  # type: ignore[arg-type]
-    except core.BenchmarkError as exc:
-        print(f"hbt-matrix: {exc}", file=sys.stderr)
-        ctx.exit(2)
-    except KeyboardInterrupt:
-        ctx.exit(130)
+    invoke(ctx, "hbt-matrix", lambda: run(Options(**kwargs), sys.stdout))  # type: ignore[arg-type]
 
 
 # Guarded for the same reason hbt/bench/__main__.py is.
