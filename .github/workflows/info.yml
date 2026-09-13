@@ -50,3 +50,13 @@ jobs:
       # be read without opening the log. A row where the four disagree is a
       # parity bug -- the check does not fail on one, it only surfaces it.
       - run: cat "$RUNNER_TEMP/info.md" >> "$GITHUB_STEP_SUMMARY"
+
+      # The conformance matrix: every implementation against the corpus it
+      # pins, through the same builds .#bench just made. Unlike the entity
+      # counts, this does fail the workflow -- a cell that is not PASS or XFAIL
+      # is a fixture some implementation does not satisfy.
+      - run: nix run -L .#conformance | tee "$RUNNER_TEMP/conformance.txt"
+      - if: ${{ !cancelled() }}
+        run: |
+          [ -f "$RUNNER_TEMP/conformance.txt" ] || exit 0
+          { echo '```'; cat "$RUNNER_TEMP/conformance.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
