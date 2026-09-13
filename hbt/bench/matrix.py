@@ -47,17 +47,17 @@ ABSENT = "-"
 class Options:  # pylint: disable=too-many-instance-attributes
     """Everything a run is told."""
 
-    impl: tuple[str, ...] = field(default_factory=tuple)
-    binary: tuple[str, ...] = field(default_factory=tuple)
-    revision: tuple[str, ...] = field(default_factory=tuple)
-    waivers: tuple[str, ...] = field(default_factory=tuple)
+    impl: tuple[str, ...] = ()
+    binary: tuple[str, ...] = ()
+    revision: tuple[str, ...] = ()
+    waivers: tuple[str, ...] = ()
     corpus: Path | None = None
     timeout: float = DEFAULT_TIMEOUT
     tz: str | None = None
     jobs: int = 8
     list_only: bool = False
     quiet: bool = False
-    patterns: tuple[str, ...] = field(default_factory=tuple)
+    patterns: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
