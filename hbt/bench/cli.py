@@ -48,6 +48,24 @@ def parse_pairs(specs: tuple[str, ...], flag: str, shape: str, known: list[str])
     return parsed
 
 
+def choose(
+    root: Path, impl: tuple[str, ...], binary: tuple[str, ...], revision: tuple[str, ...]
+) -> tuple[list[str], list[str], dict[str, Path], dict[str, str]]:
+    """The known implementations, the ones a run names, and its overrides, validated.
+
+    Shared with hbt-matrix, which takes the same three flags so that the
+    flake's wrapper can hand both commands the same arguments.
+    """
+    known = core.implementations(root)
+    names = list(impl or known)
+    unknown = set(names) - set(known)
+    if unknown:
+        raise core.BenchmarkError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
+    overrides = {n: Path(v) for n, v in parse_pairs(binary, "--binary", "NAME=PATH", known).items()}
+    revisions = parse_pairs(revision, "--revision", "NAME=REV", known)
+    return known, names, overrides, revisions
+
+
 def write(path: Path, text: str) -> None:
     """Write a file this run produced, and say where it went."""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -86,13 +104,7 @@ def run(options: Options) -> int:
     if options.info_only and output.resolve() == published.resolve():
         raise core.BenchmarkError(f"--info-only writes no timings; -o must not be {published}")
 
-    known = core.implementations(root)
-    names = list(options.impl or known)
-    unknown = set(names) - set(known)
-    if unknown:
-        raise core.BenchmarkError(f"unknown implementation(s): {', '.join(sorted(unknown))}")
-    overrides = {n: Path(v) for n, v in parse_pairs(options.binary, "--binary", "NAME=PATH", known).items()}
-    revisions = parse_pairs(options.revision, "--revision", "NAME=REV", known)
+    _, names, overrides, revisions = choose(root, options.impl, options.binary, options.revision)
     # --build refreshes the result-* symlinks, which an override bypasses.
     if options.build:
         core.build(root, [n for n in names if n not in overrides])
