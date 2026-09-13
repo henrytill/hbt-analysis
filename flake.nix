@@ -48,6 +48,24 @@
     hbt-go.url = "git+file:./hbt-go";
     hbt-ocaml.url = "git+file:./hbt-ocaml";
     hbt-rs.url = "git+file:./hbt-rs";
+
+    # The conformance harness, which hbt-matrix imports rather than
+    # reimplements. A flake input and not a fifth submodule: everything that
+    # derives the set of implementations -- hbt.bench.core.implementations and
+    # both scripts -- reads it from .gitmodules, where an hbt-data entry would
+    # read as a fifth implementation. Only the code comes from here; each
+    # implementation is checked against the corpus it pins itself.
+    #
+    # The follows are load-bearing: the package is a Python dependency of
+    # hbt-bench, and one from a second nixpkgs would bring a second python3.
+    #
+    # To work on the harness and see the matrix change, point this at a
+    # checkout: --override-input hbt-data path:../hbt-data
+    hbt-data = {
+      url = "github:henrytill/hbt-data";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
   };
 
   outputs =
@@ -61,8 +79,11 @@
       # Derived from the inputs rather than restated: the implementations have
       # to be listed as inputs anyway, and a second literal list ten lines
       # below is one more thing to keep in sync. Order is irrelevant here --
-      # the report's column order comes from hbt.bench.core.
-      names = builtins.filter (nixpkgs.lib.hasPrefix "hbt-") (builtins.attrNames inputs);
+      # the report's column order comes from hbt.bench.core. hbt-data shares
+      # the prefix and is the harness, not an implementation.
+      names = builtins.filter (name: nixpkgs.lib.hasPrefix "hbt-" name && name != "hbt-data") (
+        builtins.attrNames inputs
+      );
     in
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -94,11 +115,13 @@
           );
           pyproject = true;
           build-system = [ pkgs.python3Packages.flit-core ];
-          dependencies = with pkgs.python3Packages; [
-            click
-            jinja2
-            tabulate
-          ];
+          dependencies =
+            (with pkgs.python3Packages; [
+              click
+              jinja2
+              tabulate
+            ])
+            ++ [ inputs.hbt-data.packages.${system}.hbt-conformance ];
           # The type check is a flake check, not a build step. Leaving it here
           # made mypy -- a ~70 MiB closure on top of python3 -- a build input of
           # every consumer, including the pages build, which only needs to run
@@ -122,23 +145,33 @@
           makeWrapperArgs = [ "--prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.hyperfine ]}" ];
         };
 
-        # The end-to-end benchmark: hbt-bench with all four implementations
-        # built from their own flakes, passed as --binary/--revision so the
-        # run does not depend on the result-hbt-* symlinks being current and
-        # records the revision it actually built. The bare hbt-bench package
-        # still falls back to those symlinks for ad-hoc use.
-        bench =
-          pkgs.runCommand "hbt-bench-all"
+        # One of hbtBench's commands with all four implementations built from
+        # their own flakes, passed as --binary/--revision so the run does not
+        # depend on the result-hbt-* symlinks being current and records the
+        # revision it actually built. The bare hbt-bench package still falls
+        # back to those symlinks for ad-hoc use.
+        withImplementations =
+          drvName: command:
+          pkgs.runCommand drvName
             {
               nativeBuildInputs = [ pkgs.makeWrapper ];
             }
             ''
-              makeWrapper ${hbtBench}/bin/hbt-bench $out/bin/hbt-bench \
+              makeWrapper ${hbtBench}/bin/${command} $out/bin/${command} \
                 ${pkgs.lib.concatMapStringsSep " " (name: ''
                   --add-flags "--binary ${name}=${cliPackage name}/bin/hbt" \
                   --add-flags "--revision ${name}=${inputs.${name}.rev}" \
                 '') names}
             '';
+
+        # The end-to-end benchmark.
+        bench = withImplementations "hbt-bench-all" "hbt-bench";
+
+        # The conformance matrix. The binaries are the flake.lock revisions, but
+        # each corpus is read from the working tree's nested checkout, so a lock
+        # behind the gitlinks can pair a binary with a newer corpus than the
+        # one it pins; the header prints both so that shows.
+        conformance = withImplementations "hbt-matrix-all" "hbt-matrix";
 
         # The published page. Built rather than committed, in the shape atp
         # uses: the HTML is a derivation output under share/doc, and CI only
@@ -164,12 +197,17 @@
       {
         packages.hbt-bench = hbtBench;
         packages.bench = bench;
+        packages.conformance = conformance;
         packages.site = site;
         packages.default = hbtBench;
 
         apps.bench = {
           type = "app";
           program = "${bench}/bin/hbt-bench";
+        };
+        apps.conformance = {
+          type = "app";
+          program = "${conformance}/bin/hbt-matrix";
         };
         apps.default = self.apps.${system}.bench;
 
