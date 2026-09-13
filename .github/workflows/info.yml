@@ -55,7 +55,13 @@ jobs:
       # pins, through the same builds .#bench just made. Unlike the entity
       # counts, this does fail the workflow -- a cell that is not PASS or XFAIL
       # is a fixture some implementation does not satisfy.
-      - run: nix run -L .#conformance | tee "$RUNNER_TEMP/conformance.txt"
+      #
+      # `shell: bash` is what makes that true. Without it a step runs under
+      # `bash -e`, with no pipefail, so the pipeline's status is tee's and the
+      # step passes whatever hbt-matrix exits with. Naming the shell runs it as
+      # `bash --noprofile --norc -eo pipefail`.
+      - shell: bash
+        run: nix run -L .#conformance | tee "$RUNNER_TEMP/conformance.txt"
       - if: ${{ !cancelled() }}
         run: |
           [ -f "$RUNNER_TEMP/conformance.txt" ] || exit 0
