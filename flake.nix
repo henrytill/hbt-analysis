@@ -6,7 +6,7 @@
     # directories, and the relative git+file: inputs below only resolve because
     # the flake happens to be evaluated in place. It makes them work from a
     # copied source too. The `src` below is filtered, so pulling the submodule
-    # trees into `self` does not enlarge the hbt-bench derivation or make it
+    # trees into `self` does not enlarge the hbt-analysis derivation or make it
     # rebuild whenever a pointer moves.
     self.submodules = true;
 
@@ -49,7 +49,7 @@
     hbt-ocaml.url = "git+file:./hbt-ocaml";
     hbt-rs.url = "git+file:./hbt-rs";
 
-    # The conformance harness, which hbt-matrix imports rather than
+    # The conformance harness, which `hbt-analysis conformance` imports rather than
     # reimplements. A flake input and not a fifth submodule: everything that
     # derives the set of implementations -- hbt.bench.core.implementations and
     # both scripts -- reads it from .gitmodules, where an hbt-data entry would
@@ -57,7 +57,7 @@
     # implementation is checked against the corpus it pins itself.
     #
     # The follows are load-bearing: the package is a Python dependency of
-    # hbt-bench, and one from a second nixpkgs would bring a second python3.
+    # hbt-analysis, and one from a second nixpkgs would bring a second python3.
     #
     # To work on the harness and see the matrix change, point this at a
     # checkout: --override-input hbt-data path:../hbt-data
@@ -109,8 +109,8 @@
           in
           ps.hbt-cli or ps.default;
 
-        hbtBench = pkgs.python3Packages.buildPythonApplication {
-          pname = "hbt-bench";
+        hbtAnalysis = pkgs.python3Packages.buildPythonApplication {
+          pname = "hbt-analysis";
           # From __init__.py, which pyproject's dynamic version already makes
           # the one source the wheel is built from. Restating it here would let
           # the store path -- a provenance label, in a tool whose subject is
@@ -150,33 +150,37 @@
           makeWrapperArgs = [ "--prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.hyperfine ]}" ];
         };
 
-        # One of hbtBench's commands with all four implementations built from
-        # their own flakes, passed as --binary/--revision so the run does not
-        # depend on the result-hbt-* symlinks being current and records the
-        # revision it actually built. The bare hbt-bench package still falls
-        # back to those symlinks for ad-hoc use.
+        # Every command with all four implementations built from their own
+        # flakes, passed as --binary/--revision so a run does not depend on the
+        # result-hbt-* symlinks being current and records the revision it
+        # actually built. The bare hbt-analysis package still falls back to
+        # those symlinks for ad-hoc use.
+        #
+        # One wrapper per command rather than one for the group, because the
+        # selection options follow the command name. --argv0 keeps the name a
+        # command reports itself by as hbt-analysis rather than the wrapper's.
+        #
+        # For conformance, the binaries are the flake.lock revisions but each
+        # corpus is read from the working tree's nested checkout, so a lock
+        # behind the gitlinks can pair a binary with a newer corpus than the
+        # one it pins; the header prints both so that shows.
+        selectionFlags = pkgs.lib.concatMapStringsSep " " (
+          name:
+          ''--add-flags "--binary ${name}=${cliPackage name}/bin/hbt" --add-flags "--revision ${name}=${inputs.${name}.rev}"''
+        ) names;
         withImplementations =
-          drvName: command:
-          pkgs.runCommand drvName
+          pkgs.runCommand "hbt-analysis-all"
             {
               nativeBuildInputs = [ pkgs.makeWrapper ];
             }
             ''
-              makeWrapper ${hbtBench}/bin/${command} $out/bin/${command} \
-                ${pkgs.lib.concatMapStringsSep " " (name: ''
-                  --add-flags "--binary ${name}=${cliPackage name}/bin/hbt" \
-                  --add-flags "--revision ${name}=${inputs.${name}.rev}" \
-                '') names}
+              for command in bench conformance; do
+                makeWrapper ${hbtAnalysis}/bin/hbt-analysis "$out/bin/hbt-analysis-$command" \
+                  --argv0 hbt-analysis \
+                  --add-flags "$command" \
+                  ${selectionFlags}
+              done
             '';
-
-        # The end-to-end benchmark.
-        bench = withImplementations "hbt-bench-all" "hbt-bench";
-
-        # The conformance matrix. The binaries are the flake.lock revisions, but
-        # each corpus is read from the working tree's nested checkout, so a lock
-        # behind the gitlinks can pair a binary with a newer corpus than the
-        # one it pins; the header prints both so that shows.
-        conformance = withImplementations "hbt-matrix-all" "hbt-matrix";
 
         # The published page. Built rather than committed, in the shape atp
         # uses: the HTML is a derivation output under share/doc, and CI only
@@ -187,37 +191,36 @@
           pkgs.runCommand "hbt-analysis-site"
             {
               nativeBuildInputs = [
-                hbtBench
+                hbtAnalysis
                 pkgs.pandoc
               ];
             }
             ''
               html=$out/share/doc/hbt-analysis/html
               mkdir -p "$html"
-              hbt-bench --report-only ${./benchmarks/results.json} > report.md
+              hbt-analysis bench --report-only ${./benchmarks/results.json} > report.md
               pandoc report.md --defaults ${./benchmarks/defaults.yml} \
                 --metadata "pagetitle=hbt benchmark" -o "$html/index.html"
             '';
       in
       {
-        packages.hbt-bench = hbtBench;
-        packages.bench = bench;
-        packages.conformance = conformance;
+        packages.hbt-analysis = hbtAnalysis;
+        packages.all = withImplementations;
         packages.site = site;
-        packages.default = hbtBench;
+        packages.default = hbtAnalysis;
 
         apps.bench = {
           type = "app";
-          program = "${bench}/bin/hbt-bench";
+          program = "${withImplementations}/bin/hbt-analysis-bench";
         };
         apps.conformance = {
           type = "app";
-          program = "${conformance}/bin/hbt-matrix";
+          program = "${withImplementations}/bin/hbt-analysis-conformance";
         };
         apps.default = self.apps.${system}.bench;
 
         # A flake check rather than a build step, so mypy is not a build input
-        # of everything that consumes hbt-bench.
+        # of everything that consumes hbt-analysis.
         #
         # pyproject.toml is the one place this project's tool configuration
         # lives, so the check reads it with --config-file rather than restating
@@ -233,7 +236,7 @@
         # reason `src` above does: this check carries one package's dependency
         # set, and a second member of the namespace would bring its own.
         checks.mypy =
-          pkgs.runCommand "hbt-bench-mypy"
+          pkgs.runCommand "hbt-analysis-mypy"
             {
               nativeBuildInputs = [
                 pkgs.python3Packages.mypy
@@ -241,12 +244,12 @@
                 # alongside it; mypy prefers a stub package over an untyped one
                 # when both are present. A stub is not a runtime dependency, so
                 # this is the one thing the package cannot supply. jinja2 and
-                # tabulate themselves come from hbtBench, the same inheritance
+                # tabulate themselves come from hbtAnalysis, the same inheritance
                 # `inputsFrom` gives the dev shell below -- a dependency added
                 # to `dependencies` above reaches this check on its own.
                 pkgs.python3Packages.types-tabulate
               ]
-              ++ hbtBench.propagatedBuildInputs;
+              ++ hbtAnalysis.propagatedBuildInputs;
             }
             ''
               mkdir hbt
@@ -257,7 +260,7 @@
             '';
 
         devShells.default = pkgs.mkShell {
-          inputsFrom = [ hbtBench ];
+          inputsFrom = [ hbtAnalysis ];
           packages =
             (with pkgs; [
               hyperfine

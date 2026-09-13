@@ -22,13 +22,12 @@ import sys
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from typing import Mapping, Sequence, TextIO
+from typing import Any, Mapping, Sequence, TextIO
 
 import click
 
-from hbt import bench
 from hbt.bench import core
-from hbt.bench.cli import choose, invoke, parse_pairs
+from hbt.bench.selection import Selection, choose, invoke, parse_pairs, selection_options
 from hbt.conformance import Corpus, CorpusError, Fixture, Outcome, Result, Run
 from hbt.conformance import __version__ as harness_version
 from hbt.conformance import check_corpus, read_waivers, revision
@@ -45,11 +44,8 @@ ABSENT = "-"
 
 @dataclass(frozen=True)
 class Options:  # pylint: disable=too-many-instance-attributes
-    """Everything a run is told."""
+    """Everything `conformance` alone is told; which implementations is a :class:`Selection`."""
 
-    impl: tuple[str, ...] = ()
-    binary: tuple[str, ...] = ()
-    revision: tuple[str, ...] = ()
     waivers: tuple[str, ...] = ()
     corpus: Path | None = None
     timeout: float = DEFAULT_TIMEOUT
@@ -252,10 +248,10 @@ def _list(corpora: Mapping[str, Corpus | str], fixtures: Sequence[str], out: Tex
         print(fixture, file=out)
 
 
-def run(options: Options, out: TextIO) -> int:
+def run(selection: Selection, options: Options, out: TextIO) -> int:
     """Check the selected implementations; 0 if every one of them conformed."""
     root = core.repo_root()
-    known, names, overrides, revisions = choose(root, options.impl, options.binary, options.revision)
+    known, names, overrides, revisions = choose(root, selection)
     waivers = _waiver_files(options.waivers, known)
 
     corpora = locate(root, names, options.corpus)
@@ -286,24 +282,7 @@ def run(options: Options, out: TextIO) -> int:
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option(
-    "--impl",
-    multiple=True,
-    metavar="NAME",
-    help="limit to this implementation (repeatable)",
-)
-@click.option(
-    "--binary",
-    multiple=True,
-    metavar="NAME=PATH",
-    help="use this binary for NAME instead of result-NAME/bin/hbt (repeatable)",
-)
-@click.option(
-    "--revision",
-    multiple=True,
-    metavar="NAME=REV",
-    help="record REV as the revision NAME's binary was built from (repeatable)",
-)
+@selection_options
 @click.option(
     "--waivers",
     multiple=True,
@@ -347,18 +326,13 @@ def run(options: Options, out: TextIO) -> int:
     is_flag=True,
     help="show only fixtures some implementation did not pass",
 )
-@click.version_option(bench.__version__, "--version", prog_name="hbt-matrix")
 @click.argument("patterns", nargs=-1, metavar="[FILTER]...")
 @click.pass_context
-def cli(ctx: click.Context, /, **kwargs: object) -> None:
-    """Check every hbt implementation against the corpus, side by side.
+def conformance(ctx: click.Context, /, **kwargs: Any) -> None:
+    """Check every implementation against the corpus, side by side.
 
     FILTER selects fixtures by name, substring or glob; every fixture runs if
     none is given.
     """
-    invoke(ctx, "hbt-matrix", lambda: run(Options(**kwargs), sys.stdout))  # type: ignore[arg-type]
-
-
-# Guarded for the same reason hbt/bench/__main__.py is.
-if __name__ == "__main__":
-    cli(prog_name="hbt-matrix")  # pylint: disable=no-value-for-parameter
+    selection = Selection.take(kwargs)
+    invoke(ctx, lambda: run(selection, Options(**kwargs), sys.stdout))

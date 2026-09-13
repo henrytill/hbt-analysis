@@ -324,7 +324,7 @@ def benchmark(pairs: list[Pair], inputs: list[Input], warmup: int, min_runs: int
             print(f"benchmarking {inp.name} ...", file=sys.stderr)
             # hyperfine writes its progress display and summary to stdout, not
             # stderr. Send it to stderr so stdout carries nothing but the
-            # report, and `hbt-bench > report.md` stays clean.
+            # report, and `hbt-analysis bench > report.md` stays clean.
             try:
                 subprocess.run(cmd, check=True, stdout=sys.stderr)
             except subprocess.CalledProcessError as exc:

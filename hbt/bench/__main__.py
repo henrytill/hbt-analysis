@@ -10,4 +10,4 @@ from hbt.bench.cli import cli
 if __name__ == "__main__":
     # Click supplies every parameter from the command line; pylint reads the
     # decorated function's signature and sees them missing.
-    cli(prog_name="hbt-bench")  # pylint: disable=no-value-for-parameter
+    cli(prog_name="hbt-analysis")  # pylint: disable=no-value-for-parameter
