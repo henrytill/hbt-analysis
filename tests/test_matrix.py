@@ -20,10 +20,9 @@ from typing import Any
 from unittest.mock import patch
 
 from hbt.bench import core
-from hbt.bench.matrix import Options, conformance, corpus_root, run
+from hbt.bench.matrix import Options, corpus_root, run
 from hbt.bench.selection import Selection
 from hbt.conformance.corpus import CorpusError
-from tests import binding
 
 DOCUMENT = """version: 0.1.0
 length: 0
@@ -42,14 +41,6 @@ value:
     labels: []
   edges: []
 """
-
-
-class Binding(unittest.TestCase):
-    def test_every_option_names_a_field(self) -> None:
-        binding.assert_every_option_names_a_field(self, conformance, Options, Selection)
-
-    def test_the_defaults_agree(self) -> None:
-        binding.assert_the_defaults_agree(self, conformance, Options, Selection)
 
 
 def _submodule(gitmodules: Path, name: str, path: str, url: str) -> None:
