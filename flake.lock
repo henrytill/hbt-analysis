@@ -163,11 +163,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789238182,
-        "narHash": "sha256-w/+g4djOAY+mugWlCEkQ9Nk1OaLG0knS6vM63/d0ek0=",
+        "lastModified": 1789267887,
+        "narHash": "sha256-2t5XBeW629DLwAnJ35nvzrOEEb61tnES31bp9adrAaI=",
         "owner": "henrytill",
         "repo": "hbt-data",
-        "rev": "bd18661be898b720e37dc46a024739ac0ddac39a",
+        "rev": "f24f13c80e5223f0a8281f598b18f75931dbbba3",
         "type": "github"
       },
       "original": {
