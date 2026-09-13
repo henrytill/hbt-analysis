@@ -157,7 +157,8 @@
         # those symlinks for ad-hoc use.
         #
         # One wrapper per command rather than one for the group, because the
-        # selection options follow the command name.
+        # selection options follow the command name; `selection_options` in
+        # hbt/bench/selection.py says why.
         #
         # For conformance, the binaries are the flake.lock revisions but each
         # corpus is read from the working tree's nested checkout, so a lock
