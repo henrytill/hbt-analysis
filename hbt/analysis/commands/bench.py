@@ -15,7 +15,7 @@ import click
 
 from hbt.analysis.commands import CommandError, invoke, selection_options
 from hbt.analysis.implementations import Selection, build, choose, discover, repo_root
-from hbt.bench import BenchmarkError, benchmark, collect, dump_results, load_corpus, load_results, render, verify
+from hbt.bench import benchmark, collect, dump_results, load_corpus, load_results, render, verify
 
 
 @dataclass(frozen=True)
@@ -56,18 +56,7 @@ def write_report(data: dict[str, Any], path: Path | None) -> None:
 
 
 def run(selection: Selection, options: Options) -> int:
-    """Run the benchmark (or just re-render) and write the outputs.
-
-    The library's refusals become this command's, the way `conformance`
-    translates the harness's.
-    """
-    try:
-        return _run(selection, options)
-    except BenchmarkError as exc:
-        raise CommandError(str(exc)) from exc
-
-
-def _run(selection: Selection, options: Options) -> int:
+    """Run the benchmark (or just re-render) and write the outputs."""
     if options.report_only:
         # Deliberately before repo_root(): re-rendering must work outside a git
         # checkout, because the Nix derivation that builds the published page

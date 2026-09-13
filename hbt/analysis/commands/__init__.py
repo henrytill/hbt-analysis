@@ -17,6 +17,8 @@ from typing import Any, Callable, TypeVar
 import click
 
 from hbt.analysis.implementations import ImplementationError
+from hbt.bench import BenchmarkError
+from hbt.conformance import CorpusError
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -70,10 +72,13 @@ def invoke(ctx: click.Context, command: Callable[[], int]) -> None:
     Shared by every command, so each exit status means the same thing
     whichever of them returned it.  A message is prefixed with the command's
     full path, `hbt-analysis bench`, so it says which command refused.
+
+    The libraries' own errors are refusals here too, so no command has to
+    translate the error of the library it drives into one of these.
     """
     try:
         ctx.exit(command())
-    except (CommandError, ImplementationError) as exc:
+    except (CommandError, ImplementationError, BenchmarkError, CorpusError) as exc:
         print(f"{ctx.command_path}: {exc}", file=sys.stderr)
         ctx.exit(2)
     except subprocess.CalledProcessError as exc:

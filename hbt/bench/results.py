@@ -22,8 +22,8 @@ FORMAT_VERSION = "0.1.0"
 class BenchmarkError(Exception):
     """A condition that should stop a benchmark with a message, not a traceback.
 
-    This library's own, so that it knows nothing of the command driving it:
-    `hbt-analysis bench` turns it into that command's refusal.
+    This library's own, so that it knows nothing of the command driving it;
+    `hbt-analysis` treats it as a refusal.
     """
 
 
