@@ -49,16 +49,6 @@ class Impl:
     # indistinguishable from a complete one.
     error: str | None = None
 
-    def serialize(self) -> dict[str, Any]:
-        """The document's view of this implementation."""
-        return {
-            "name": self.name,
-            "store_path": self.store_path,
-            "version": self.version,
-            "revision": self.revision,
-            "error": self.error,
-        }
-
 
 @dataclass(frozen=True)
 class Selection:

@@ -40,25 +40,18 @@ ENTITIES_RE = re.compile(r"(\d+)\s+entities")
 class Implementation(Protocol):
     """What a benchmark needs to know about an implementation.
 
-    A name, a binary -- None when none could be found, which the document
-    still records -- and the provenance to write beside the numbers.  How the
-    binary was found is not this library's business; `hbt.analysis` finds
-    them, the way it hands `hbt.conformance` a binary to check.
+    Fields rather than a method that serializes them, so the document's
+    implementation entries are spelled here, beside FORMAT_VERSION, rather
+    than by whoever supplies an implementation.  `binary` is None when none
+    could be found, and `error` then says why; the document still records it.
     """
 
-    @property
-    def name(self) -> str:
-        """The implementation's name, as the document's columns show it."""
-        ...  # pylint: disable=unnecessary-ellipsis
-
-    @property
-    def binary(self) -> Path | None:
-        """The executable to run, or None if there is none."""
-        ...  # pylint: disable=unnecessary-ellipsis
-
-    def serialize(self) -> dict[str, Any]:
-        """The document's view of this implementation: its provenance."""
-        ...  # pylint: disable=unnecessary-ellipsis
+    name: str
+    binary: Path | None
+    store_path: str | None
+    version: str | None
+    revision: str | None
+    error: str | None
 
 
 @dataclass
@@ -240,7 +233,10 @@ def collect(
             "system": platform.system(),
             "release": platform.release(),
         },
-        "implementations": [i.serialize() for i in impls],
+        "implementations": [
+            {"name": i.name, "store_path": i.store_path, "version": i.version, "revision": i.revision, "error": i.error}
+            for i in impls
+        ],
         "inputs": [{"name": i.name, "path": str(i.path)} for i in inputs],
         "results": [p.serialize() for p in pairs],
     }
