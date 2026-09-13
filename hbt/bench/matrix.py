@@ -212,9 +212,10 @@ def _matrix(columns: Sequence[Column], names: Sequence[str], quiet: bool, out: T
     shown = [(name, cells) for name, cells in rows if not (quiet and all(x in ("PASS", ABSENT) for x in cells))]
     if not shown:
         return
-    widths = _widths([["", *(c.impl.name for c in columns)], *([name, *cells] for name, cells in shown)])
+    header = ["", *(c.impl.name for c in columns)]
+    widths = _widths([header, *([name, *cells] for name, cells in shown)])
     print(file=out)
-    print(_line(["", *(c.impl.name for c in columns)], widths), file=out)
+    print(_line(header, widths), file=out)
     for name, cells in shown:
         print(_line([name, *cells], widths), file=out)
         for c in columns:
