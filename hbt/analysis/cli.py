@@ -15,20 +15,11 @@ from hbt import analysis
 from hbt.analysis.commands import bench, conformance
 
 
-@click.group(context_settings={"help_option_names": ["-h", "--help"]})
+@click.group(help=analysis.__doc__, context_settings={"help_option_names": ["-h", "--help"]})
 @click.version_option(analysis.__version__, "--version", prog_name="hbt-analysis")
 def cli() -> None:
-    """Dispatch to a command.
-
-    The help Click prints is set below, from the package docstring; this one
-    describes the function.
-    """
+    """Dispatch to a command; the help Click prints is the package docstring."""
 
 
 cli.add_command(bench.bench)
 cli.add_command(conformance.conformance)
-
-# The package docstring is the one-line description of this tool, also stated
-# as the distribution's description in pyproject. Assigned rather than
-# repeated in the docstring above, where a third copy could drift from it.
-cli.help = analysis.__doc__
