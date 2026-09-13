@@ -56,12 +56,15 @@ jobs:
       # counts, this does fail the workflow -- a cell that is not PASS or XFAIL
       # is a fixture some implementation does not satisfy.
       #
-      # `shell: bash` is what makes that true. Without it a step runs under
-      # `bash -e`, with no pipefail, so the pipeline's status is tee's and the
-      # step passes whatever the command exits with. Naming the shell runs it as
-      # `bash --noprofile --norc -eo pipefail`.
+      # pipefail is what makes that true: the matrix is piped into tee for the
+      # step summary, and without it the pipeline's status is tee's, so the
+      # step would pass whatever the command exits with. A step with no
+      # `shell:` runs under `bash -e`, which does not set it, so the script
+      # sets it itself rather than resting on the shell line alone.
       - shell: bash
-        run: nix run -L .#conformance | tee "$RUNNER_TEMP/conformance.txt"
+        run: |
+          set -o pipefail
+          nix run -L .#conformance | tee "$RUNNER_TEMP/conformance.txt"
       - if: ${{ !cancelled() }}
         run: |
           [ -f "$RUNNER_TEMP/conformance.txt" ] || exit 0
