@@ -104,7 +104,7 @@ def run(selection: Selection, options: Options) -> int:
     return 0
 
 
-@click.command(context_settings={"help_option_names": ["-h", "--help"]})
+@click.command()
 @selection_options
 @click.option(
     "--corpus",

@@ -281,7 +281,7 @@ def run(selection: Selection, options: Options, out: TextIO) -> int:
     return 0 if all(c.ok for c in columns) else 1
 
 
-@click.command(context_settings={"help_option_names": ["-h", "--help"]})
+@click.command()
 @selection_options
 @click.option(
     "--waivers",
