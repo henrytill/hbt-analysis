@@ -11,8 +11,7 @@ from __future__ import annotations
 import click
 
 from hbt import bench
-from hbt.bench.benchmark import bench as bench_command
-from hbt.bench.matrix import conformance
+from hbt.bench import benchmark, matrix
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -25,8 +24,8 @@ def cli() -> None:
     """
 
 
-cli.add_command(bench_command)
-cli.add_command(conformance)
+cli.add_command(benchmark.bench)
+cli.add_command(matrix.conformance)
 
 # pyproject declares the package docstring as the distribution summary, so it
 # is already the one-line description of this tool. Assigned rather than
