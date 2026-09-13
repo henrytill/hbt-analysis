@@ -157,8 +157,7 @@
         # those symlinks for ad-hoc use.
         #
         # One wrapper per command rather than one for the group, because the
-        # selection options follow the command name. --argv0 keeps the name a
-        # command reports itself by as hbt-analysis rather than the wrapper's.
+        # selection options follow the command name.
         #
         # For conformance, the binaries are the flake.lock revisions but each
         # corpus is read from the working tree's nested checkout, so a lock
@@ -176,7 +175,6 @@
             ''
               for command in bench conformance; do
                 makeWrapper ${hbtAnalysis}/bin/hbt-analysis "$out/bin/hbt-analysis-$command" \
-                  --argv0 hbt-analysis \
                   --add-flags "$command" \
                   ${selectionFlags}
               done
