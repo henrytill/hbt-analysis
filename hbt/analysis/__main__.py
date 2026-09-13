@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from hbt.bench.cli import cli
+from hbt.analysis.cli import cli
 
 # Guarded, because this module is importable under its own name: a doctest
 # collector or any `walk_packages` sweep imports it, and an unguarded call

@@ -33,7 +33,7 @@ Inside the dev shell, run it from the working tree so edits take effect. There i
 
 ```sh
 nix develop
-python -m hbt.bench bench --build    # --build refreshes the symlinks first
+python -m hbt.analysis bench --build # --build refreshes the symlinks first
 ```
 
 ### Run it locally, publish from CI
@@ -88,7 +88,7 @@ nix run .#conformance -- --corpus ../hbt-data                 # everyone, agains
 nix run .#conformance -- --waivers hbt-go=path/to/waivers     # per implementation
 ```
 
-Under `.#conformance` the binaries are the `flake.lock` revisions, while each corpus is read from the working tree's nested checkout. When the lock falls behind the gitlinks those can pair a binary with a corpus newer than the one it pins — the header shows both, and `nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs` realigns them. In the dev shell, `python -m hbt.bench conformance` falls back to the `result-hbt-*` symlinks as `bench` does.
+Under `.#conformance` the binaries are the `flake.lock` revisions, while each corpus is read from the working tree's nested checkout. When the lock falls behind the gitlinks those can pair a binary with a corpus newer than the one it pins — the header shows both, and `nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs` realigns them. In the dev shell, `python -m hbt.analysis conformance` falls back to the `result-hbt-*` symlinks as `bench` does.
 
 The harness itself is the `hbt-data` flake input, not a fifth submodule: a fifth entry in `.gitmodules` would read as a fifth implementation to everything that derives the set from it. To see an unreleased harness change in the matrix, point the input at a checkout with `--override-input hbt-data path:../hbt-data`.
 
@@ -102,7 +102,7 @@ The cost is a third layer of pinning. `flake.lock` records a rev for each implem
 nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs
 ```
 
-`inputs.self.submodules = true` is set, so `self` is the tree *with* the submodules rather than with four empty directories. The usual cost of setting it — every submodule tree landing in `src = self` — does not apply here: the `hbt-analysis` derivation takes a `lib.fileset`-filtered source of just `hbt/bench/`, `pyproject.toml`, and this README, so it stays a few tens of kilobytes rather than the size of the four submodule trees, and does not rebuild when a pointer moves.
+`inputs.self.submodules = true` is set, so `self` is the tree *with* the submodules rather than with four empty directories. The usual cost of setting it — every submodule tree landing in `src = self` — does not apply here: the `hbt-analysis` derivation takes a `lib.fileset`-filtered source of just `hbt/analysis/`, `hbt/bench/`, `pyproject.toml`, and this README, so it stays a few tens of kilobytes rather than the size of the four submodule trees, and does not rebuild when a pointer moves.
 
 The `git+file:` inputs emit a deprecation warning ([NixOS/nix#12281](https://github.com/NixOS/nix/issues/12281)). That issue prescribes replacing them with `inputs.self.submodules = true` plus a bare path literal (`hbt-rs.url = ./hbt-rs`), which is half of what is already here — but the other half does not work: `hbt-go` then fails to evaluate with `attribute 'dirtyShortRev' missing`, because three of the four subflakes read their version out of `self`'s git metadata and a path input has none. Making the prescribed form usable means teaching the four upstreams to tolerate a revision-less `self`. Until then the warning is ignorable, which is also what the Nix maintainers say on that issue.
 
@@ -112,7 +112,8 @@ The companion warning about not reading HEAD is benign: detaching `hbt-go` three
 
 | Path | What |
 |---|---|
-| `hbt/bench/` | `hbt-analysis` (Python, flit): `cli.py` gathers the commands, `benchmark.py` and `matrix.py` are `bench` and `conformance`, `selection.py` is what they share; `hbt` is a PEP 420 namespace portion, so it has no `__init__.py` |
+| `hbt/analysis/` | `hbt-analysis` (Python): `cli.py` gathers the commands, `commands/bench.py` and `commands/conformance.py` are the two commands, `commands/__init__.py` is what they share, `implementations.py` finds the implementations and their binaries |
+| `hbt/bench/` | the benchmark library `hbt-analysis bench` drives, a sibling of `hbt.conformance`: `timing.py`, `results.py`, and `report.py` with its template. `hbt` is a PEP 420 namespace portion, so it has no `__init__.py`; both packages ship in the one `hbt-analysis` distribution, built with hatchling |
 | `benchmarks/` | corpus definitions, `results.json`, and the pandoc defaults for the page |
 | `scripts/` | submodule pointer maintenance (bash) |
 | `flake.nix` | `hbt-analysis`, the dev shell, `.#bench`, `.#conformance`, and `.#site` |

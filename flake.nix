@@ -51,7 +51,7 @@
 
     # The conformance harness, which `hbt-analysis conformance` imports rather than
     # reimplements. A flake input and not a fifth submodule: everything that
-    # derives the set of implementations -- hbt.bench.core.implementations and
+    # derives the set of implementations -- hbt.analysis.implementations and
     # both scripts -- reads it from .gitmodules, where an hbt-data entry would
     # read as a fifth implementation. Only the code comes from here; each
     # implementation is checked against the corpus it pins itself.
@@ -76,12 +76,12 @@
       ...
     }@inputs:
     let
-      # The submodule paths in .gitmodules, which is where hbt.bench.core and
+      # The submodule paths in .gitmodules, which is where hbt.analysis and
       # both scripts read the set of implementations from, rather than a
       # second literal list or a naming convention the hbt-data input already
       # breaks. Each has to be an input of the same name too, and one that is
       # not fails evaluation by name. Order is irrelevant here -- the report's
-      # column order comes from hbt.bench.core.
+      # column order comes from hbt.analysis.implementations.
       names = builtins.concatMap (
         line:
         let
@@ -116,7 +116,7 @@
           # the store path -- a provenance label, in a tool whose subject is
           # provenance -- go on claiming 0.1.0 after a bump.
           version = builtins.head (
-            builtins.match ".*__version__ = \"([^\"]+)\".*" (builtins.readFile ./hbt/bench/__init__.py)
+            builtins.match ".*__version__ = \"([^\"]+)\".*" (builtins.readFile ./hbt/analysis/__init__.py)
           );
           pyproject = true;
           build-system = [ pkgs.python3Packages.hatchling ];
@@ -132,14 +132,15 @@
           # every consumer, including the pages build, which only needs to run
           # pandoc over a JSON file.
           doCheck = false;
-          # Just the package, not the whole tree: keeps the four submodule trees
+          # Just the packages, not the whole tree: keeps the four submodule trees
           # that self.submodules pulls in out of the derivation, and stops
-          # AGENTS.md edits from triggering a rebuild. `./hbt/bench` rather than
-          # `./hbt`, so that a second member of the namespace does not become a
-          # source input of this one.
+          # AGENTS.md edits from triggering a rebuild. The two packages by name
+          # rather than `./hbt`, so that another member of the namespace does not
+          # become a source input of this one.
           src = pkgs.lib.fileset.toSource {
             root = ./.;
             fileset = pkgs.lib.fileset.unions [
+              ./hbt/analysis
               ./hbt/bench
               ./pyproject.toml
               ./README.md
@@ -158,7 +159,7 @@
         #
         # One wrapper per command rather than one for the group, because the
         # selection options follow the command name; `selection_options` in
-        # hbt/bench/selection.py says why.
+        # hbt/analysis/commands/__init__.py says why.
         #
         # For conformance, the binaries are the flake.lock revisions but each
         # corpus is read from the working tree's nested checkout, so a lock
@@ -166,7 +167,7 @@
         # one it pins; the header prints both so that shows.
         #
         # `commands` is the one list the wrappers and the apps are both built
-        # from. hbt/bench/cli.py is the authority on it: the build runs each
+        # from. hbt/analysis/cli.py is the authority on it: the build runs each
         # wrapper's --help, which Click answers before validating anything, so
         # a name the group does not have fails here rather than at nix run.
         commands = [
@@ -233,16 +234,17 @@
         # pyproject.toml is the one place this project's tool configuration
         # lives, so the check reads it with --config-file rather than restating
         # any of it here -- `strict` and `explicit_package_bases` both come from
-        # the file, and `mypy hbt/bench` in the dev shell is then the same check
+        # the file, and `mypy hbt tests` in the dev shell is then the same check
         # this runs. --config-file and not a copy next to the source, because
         # mypy is happy to read config from anywhere.
         #
         # The source itself does have to be copied: explicit_package_bases makes
-        # the working directory the package root, so the tree has to sit at
-        # `hbt/bench` for the module to be `hbt.bench`, and a store path's
-        # basename is a hash. Copying ./hbt/bench rather than ./hbt for the same
-        # reason `src` above does: this check carries one package's dependency
-        # set, and a second member of the namespace would bring its own.
+        # the working directory the package root, so the trees have to sit at
+        # `hbt/analysis` and `hbt/bench` for the modules to be `hbt.analysis`
+        # and `hbt.bench`, and a store path's basename is a hash. Copying the
+        # two packages rather than ./hbt for the same reason `src` above does:
+        # this check carries this distribution's dependency set, and another
+        # member of the namespace would bring its own.
         checks.mypy =
           pkgs.runCommand "hbt-analysis-mypy"
             {
@@ -261,9 +263,10 @@
             }
             ''
               mkdir hbt
+              cp -r ${./hbt/analysis} hbt/analysis
               cp -r ${./hbt/bench} hbt/bench
               cp -r ${./tests} tests
-              mypy --config-file ${./pyproject.toml} hbt/bench tests
+              mypy --config-file ${./pyproject.toml} hbt/analysis hbt/bench tests
               touch $out
             '';
 

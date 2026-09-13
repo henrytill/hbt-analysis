@@ -9,9 +9,6 @@ worked, so every command on a row is measured under the same conditions. The
 ratios in the report are not hyperfine's -- its summary goes to stderr and is
 discarded; report.py recomputes them from the exported means, a ratio being a
 presentation concern.
-
-The results are the durable artifact; rendering is a separate step that reads
-them back, so a report can be regenerated without re-running anything.
 """
 
 from __future__ import annotations
@@ -28,7 +25,9 @@ import tomllib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol, Sequence
+
+from hbt.bench.results import FORMAT_VERSION, BenchmarkError
 
 # Go uses stdlib `flag`, which accepts the double-dashed spelling too, so one
 # invocation shape works everywhere. The reply text differs between
@@ -37,55 +36,29 @@ from typing import Any
 INFO_FLAG = "--info"
 ENTITIES_RE = re.compile(r"(\d+)\s+entities")
 
-# Bumped when the shape of the results document changes incompatibly.  The
-# thing being benchmarked versions its own serialized Collection against
-# ^0.1.0; this file is committed, re-rendered by a Nix derivation on every
-# push, and explicitly meant to be re-read later, so it gets the same
-# treatment rather than being read with bare subscripts forever.
-FORMAT_VERSION = "0.1.0"
 
+class Implementation(Protocol):
+    """What a benchmark needs to know about an implementation.
 
-class CommandError(Exception):
-    """A condition that should stop a command with a message, not a traceback.
-
-    Every command's, not only `bench`'s: `hbt.bench.selection.invoke` turns it
-    into exit status 2 for all of them, so a command refuses by raising this
-    rather than by a type of its own.
+    A name, a binary -- None when none could be found, which the document
+    still records -- and the provenance to write beside the numbers.  How the
+    binary was found is not this library's business; `hbt.analysis` finds
+    them, the way it hands `hbt.conformance` a binary to check.
     """
 
-
-@dataclass
-class Impl:
-    """One implementation, whether or not a binary for it was found."""
-
-    name: str
-    binary: Path | None = None
-    store_path: str | None = None
-    # What the binary says about itself, verbatim; None if it has no --version.
-    version: str | None = None
-    # Only ever set from a source that knows which build this is -- the flake
-    # wrapper passes the rev of the input it built. Never guessed.
-    revision: str | None = None
-    # Why there is no binary. An implementation that could not be found stays
-    # in the document as a column of blanks with a reason, the way a failed
-    # (implementation, input) pair does; dropping it would make a partial run
-    # indistinguishable from a complete one.
-    error: str | None = None
+    @property
+    def name(self) -> str:
+        """The implementation's name, as the document's columns show it."""
+        ...  # pylint: disable=unnecessary-ellipsis
 
     @property
-    def available(self) -> bool:
-        """Whether this implementation can actually be run."""
-        return self.binary is not None
+    def binary(self) -> Path | None:
+        """The executable to run, or None if there is none."""
+        ...  # pylint: disable=unnecessary-ellipsis
 
     def serialize(self) -> dict[str, Any]:
-        """The document's view of this implementation."""
-        return {
-            "name": self.name,
-            "store_path": self.store_path,
-            "version": self.version,
-            "revision": self.revision,
-            "error": self.error,
-        }
+        """The document's view of this implementation: its provenance."""
+        ...  # pylint: disable=unnecessary-ellipsis
 
 
 @dataclass
@@ -98,11 +71,12 @@ class Input:
 class Pair:
     """One (implementation, input) cell of the matrix.
 
-    Carries the Impl rather than its name so benchmark() does not have to
-    rebuild a name-to-Impl index for state verify() already had in hand.
+    Carries the implementation rather than its name so benchmark() does not
+    have to rebuild a name-to-implementation index for state verify() already
+    had in hand.
     """
 
-    impl: Impl
+    impl: Implementation
     input: str
     entities: int | None = None
     error: str | None = None
@@ -124,75 +98,6 @@ class Pair:
         }
 
 
-def submodules(gitmodules: Path) -> dict[str, str]:
-    """Each submodule path in `gitmodules`, mapped to its URL.
-
-    Read with `git config` rather than parsed here, the way both scripts read
-    it too.
-    """
-    out = subprocess.run(
-        ["git", "config", "--file", str(gitmodules), "--get-regexp", r"^submodule\..*\.(path|url)$"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if out.returncode != 0:
-        raise CommandError(f"could not read {gitmodules}")
-    sections: dict[str, dict[str, str]] = {}
-    for line in out.stdout.splitlines():
-        key, _, value = line.partition(" ")
-        section, _, attribute = key.rpartition(".")
-        sections.setdefault(section, {})[attribute] = value
-    return {s["path"]: s.get("url", "") for s in sections.values() if "path" in s}
-
-
-def implementations(root: Path) -> list[str]:
-    """The implementations, read from .gitmodules.
-
-    The submodule directory name doubles as the implementation name and as the
-    `result-hbt-*` symlink suffix, so .gitmodules is the one place that already
-    knows this.  scripts/update-submodules.sh and scripts/open-submodule-pr.sh
-    both read it the same way, deliberately, so that neither carries a list to
-    keep up to date.
-
-    Sorted, because .gitmodules is in the order entries happened to be added
-    and the report's column order should not be.
-    """
-    names = sorted(submodules(root / ".gitmodules"))
-    if not names:
-        raise CommandError(f"no submodules in {root / '.gitmodules'}")
-    return names
-
-
-def repo_root() -> Path:
-    """The top of the working tree this is being run from."""
-    out = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True)
-    return Path(out.stdout.strip())
-
-
-def load_results(path: Path) -> dict[str, Any]:
-    """Read back a results document, translating the failures load_corpus does.
-
-    The document's shape is this module's contract, so reading it is too. It
-    matters here because the path that re-renders a saved run is the one the
-    Nix derivation for the published page takes: a missing or malformed file
-    should fail that build with a message, not a traceback.
-    """
-    try:
-        with path.open(encoding="utf-8") as f:
-            data: dict[str, Any] = json.load(f)
-    except FileNotFoundError as exc:
-        raise CommandError(f"{path}: no such results file") from exc
-    except json.JSONDecodeError as exc:
-        raise CommandError(f"{path}: not valid JSON: {exc}") from exc
-    return data
-
-
-def dump_results(data: dict[str, Any]) -> str:
-    """The document's on-disk form, so only this module spells it."""
-    return json.dumps(data, indent=2) + "\n"
-
-
 def hyperfine_cmd() -> list[str]:
     """Prefer hyperfine on PATH; fall back to fetching it through Nix.
 
@@ -203,31 +108,24 @@ def hyperfine_cmd() -> list[str]:
         return ["hyperfine"]
     if shutil.which("nix"):
         return ["nix", "run", "nixpkgs#hyperfine", "--"]
-    raise CommandError("neither hyperfine nor nix found on PATH")
+    raise BenchmarkError("neither hyperfine nor nix found on PATH")
 
 
 def load_corpus(root: Path, path: Path) -> list[Input]:
-    """Read the corpus TOML, expanding `~` and resolving relative paths."""
+    """Read the corpus TOML, expanding `~` and resolving relative paths against `root`."""
     try:
         with path.open("rb") as f:
             data = tomllib.load(f)
     except FileNotFoundError as exc:
-        raise CommandError(f"{path}: no such corpus file") from exc
+        raise BenchmarkError(f"{path}: no such corpus file") from exc
     inputs: list[Input] = []
     for entry in data.get("input", []):
         # `/` returns the right operand when it is absolute, so this covers
         # both the absolute and repo-relative cases.
         inputs.append(Input(entry["name"], root / Path(entry["path"]).expanduser()))
     if not inputs:
-        raise CommandError(f"{path}: no [[input]] entries")
+        raise BenchmarkError(f"{path}: no [[input]] entries")
     return inputs
-
-
-def build(root: Path, names: list[str]) -> None:
-    """Refresh the `result-hbt-*` symlinks from each implementation's flake."""
-    for name in names:
-        print(f"building {name} ...", file=sys.stderr)
-        subprocess.run(["nix", "build", f"./{name}#", "-o", f"result-{name}"], cwd=root, check=True)
 
 
 def reported_version(cmd: list[str]) -> str | None:
@@ -244,41 +142,10 @@ def reported_version(cmd: list[str]) -> str | None:
     return lines[0] if lines else None
 
 
-def discover(root: Path, names: list[str], overrides: dict[str, Path], revisions: dict[str, str]) -> list[Impl]:
-    """Find the built binaries, and record which build each one actually is.
-
-    The binary comes from an explicit --binary override -- which is how the
-    root flake's wrapper points at what it built -- or otherwise from the
-    `result-hbt-*` symlink, for ad-hoc use outside the flake.
-
-    Provenance is taken from the artifact, never inferred from the working
-    tree.  The submodule's HEAD is *not* the revision of the binary: a
-    `result-*` symlink is whatever was last built there, and under the flake
-    the binary comes from flake.lock, which AGENTS.md documents as routinely
-    behind the gitlink.  Measured on this checkout, all three implementations
-    that support --version disagreed with their gitlink and one reported
-    -dirty.  So the store path (exact, from the binary itself) and the
-    binary's own --version string are recorded, and `revision` is set only
-    when a caller knows it authoritatively.
-    """
-    impls: list[Impl] = []
-    for name in names:
-        link = root / f"result-{name}"
-        binary = overrides.get(name, link / "bin" / "hbt")
-        if not binary.exists():
-            reason = f"no {binary} (nix build ./{name}# -o {link.name})"
-            print(f"{name}: {reason}", file=sys.stderr)
-            impls.append(Impl(name, error=reason))
-            continue
-        store = str(binary.resolve().parent.parent)
-        impls.append(Impl(name, binary, store, reported_version([str(binary)]), revisions.get(name)))
-    return impls
-
-
-def verify(impls: list[Impl], inputs: list[Input]) -> list[Pair]:
+def verify(impls: Sequence[Implementation], inputs: Sequence[Input]) -> list[Pair]:
     """Run --info once per pair, for the entity count and to prune what fails."""
     pairs: list[Pair] = []
-    runnable = [i for i in impls if i.available]
+    runnable = [i for i in impls if i.binary is not None]
     for inp in inputs:
         # Depends only on the input, so it does not belong inside the per-impl
         # loop where it pushed the interesting path two levels deeper.
@@ -302,7 +169,7 @@ def verify(impls: list[Impl], inputs: list[Input]) -> list[Pair]:
     return pairs
 
 
-def benchmark(pairs: list[Pair], inputs: list[Input], warmup: int, min_runs: int | None) -> str | None:
+def benchmark(pairs: Sequence[Pair], inputs: Sequence[Input], warmup: int, min_runs: int | None) -> str | None:
     """Time each input across every implementation that handled it.
 
     Returns the hyperfine that did it, asked here rather than from collect():
@@ -355,7 +222,9 @@ def benchmark(pairs: list[Pair], inputs: list[Input], warmup: int, min_runs: int
     return reported_version(hyperfine)
 
 
-def collect(impls: list[Impl], inputs: list[Input], pairs: list[Pair], hyperfine: str | None) -> dict[str, Any]:
+def collect(
+    impls: Sequence[Implementation], inputs: Sequence[Input], pairs: Sequence[Pair], hyperfine: str | None
+) -> dict[str, Any]:
     """Assemble the serializable results document.
 
     Every input is passed in: this is a pure mapping from collected state to

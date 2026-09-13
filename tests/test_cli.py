@@ -22,13 +22,14 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
-from hbt.bench import benchmark, core, matrix
-from hbt.bench.cli import cli
-from hbt.bench.selection import Selection, parse_pairs
+from hbt.analysis.cli import cli
+from hbt.analysis.commands import bench, conformance
+from hbt.analysis.implementations import CommandError, Selection, parse_pairs
+from hbt.bench import FORMAT_VERSION
 from tests import binding
 
 RESULTS = {
-    "version": core.FORMAT_VERSION,
+    "version": FORMAT_VERSION,
     "generated": "2026-01-01T00:00:00+00:00",
     "hyperfine": None,
     "host": {"node": "somewhere", "machine": "x86_64", "system": "Linux", "release": "6"},
@@ -42,7 +43,7 @@ RESULTS = {
 
 # Each command's own record. Every command also takes the shared Selection,
 # which is what lets the flake's apps hand them all the same arguments.
-OPTIONS: dict[str, type[Any]] = {"bench": benchmark.Options, "conformance": matrix.Options}
+OPTIONS: dict[str, type[Any]] = {"bench": bench.Options, "conformance": conformance.Options}
 
 
 class Binding(unittest.TestCase):
@@ -68,11 +69,11 @@ class Pairs(unittest.TestCase):
         self.assertEqual(parse_pairs(("hbt-rs=/bin/hbt",), "--binary", "NAME=PATH", ["hbt-rs"]), {"hbt-rs": "/bin/hbt"})
 
     def test_an_unknown_name_is_refused(self) -> None:
-        with self.assertRaisesRegex(core.CommandError, "--binary"):
+        with self.assertRaisesRegex(CommandError, "--binary"):
             parse_pairs(("nope=/bin/hbt",), "--binary", "NAME=PATH", ["hbt-rs"])
 
     def test_a_value_without_an_equals_is_refused(self) -> None:
-        with self.assertRaisesRegex(core.CommandError, "--revision"):
+        with self.assertRaisesRegex(CommandError, "--revision"):
             parse_pairs(("hbt-rs",), "--revision", "NAME=REV", ["hbt-rs"])
 
 
@@ -99,7 +100,7 @@ class Invocation(unittest.TestCase):
 
     def test_info_only_refuses_the_published_results_file(self) -> None:
         """A document with no timings must never become the published one."""
-        with patch.object(core, "repo_root", return_value=self.root):
+        with patch("hbt.analysis.commands.bench.repo_root", return_value=self.root):
             result = self.runner.invoke(cli, ["bench", "--info-only"])
         self.assertEqual(result.exit_code, 2)
         self.assertIn("--info-only writes no timings", result.output)
@@ -107,8 +108,8 @@ class Invocation(unittest.TestCase):
     def test_an_unknown_implementation_is_refused(self) -> None:
         (self.root / "benchmarks").mkdir()
         with (
-            patch.object(core, "repo_root", return_value=self.root),
-            patch.object(core, "implementations", return_value=["hbt-rs"]),
+            patch("hbt.analysis.commands.bench.repo_root", return_value=self.root),
+            patch("hbt.analysis.implementations.implementations", return_value=["hbt-rs"]),
         ):
             result = self.runner.invoke(
                 cli, ["bench", "--impl", "nope", "--info-only", "-o", str(self.root / "out.json")]
@@ -118,7 +119,7 @@ class Invocation(unittest.TestCase):
 
 
 class EntryPoint(unittest.TestCase):
-    """`python -m hbt.bench` runs; importing the same module must not."""
+    """`python -m hbt.analysis` runs; importing the same module must not."""
 
     def test_importing_the_entry_point_does_not_run_it(self) -> None:
         """A doctest collector or a `walk_packages` sweep imports it by name.
@@ -126,6 +127,6 @@ class EntryPoint(unittest.TestCase):
         Unguarded, Click would then parse that tool's argv and exit out from
         under it, which reads as the collector crashing.
         """
-        sys.modules.pop("hbt.bench.__main__", None)
+        sys.modules.pop("hbt.analysis.__main__", None)
         with patch.object(sys, "argv", ["pytest", "--doctest-modules"]):
-            importlib.import_module("hbt.bench.__main__")
+            importlib.import_module("hbt.analysis.__main__")
