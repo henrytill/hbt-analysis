@@ -7,7 +7,7 @@ from typing import Any
 from jinja2 import Environment, PackageLoader, StrictUndefined
 from tabulate import tabulate
 
-from hbt.bench.core import FORMAT_VERSION, CommandError
+from hbt.bench.results import FORMAT_VERSION, BenchmarkError
 
 Cells = dict[tuple[str, str], dict[str, Any]]
 
@@ -99,7 +99,7 @@ def render(data: dict[str, Any]) -> str:
     """
     version = data.get("version")
     if version != FORMAT_VERSION:
-        raise CommandError(f"results format {version!r}, expected {FORMAT_VERSION!r}")
+        raise BenchmarkError(f"results format {version!r}, expected {FORMAT_VERSION!r}")
     impls = [i["name"] for i in data["implementations"]]
     inputs = [i["name"] for i in data["inputs"]]
     cells: Cells = {(r["implementation"], r["input"]): r for r in data["results"]}

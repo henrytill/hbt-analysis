@@ -26,8 +26,17 @@ from typing import Any, Mapping, Sequence, TextIO
 
 import click
 
-from hbt.bench import core
-from hbt.bench.selection import Selection, choose, invoke, parse_pairs, selection_options
+from hbt.analysis.commands import invoke, selection_options
+from hbt.analysis.implementations import (
+    CommandError,
+    Impl,
+    Selection,
+    choose,
+    discover,
+    parse_pairs,
+    repo_root,
+    submodules,
+)
 from hbt.conformance import Corpus, CorpusError, Fixture, Outcome, Result, Run
 from hbt.conformance import __version__ as harness_version
 from hbt.conformance import check_corpus, read_waivers, revision
@@ -60,7 +69,7 @@ class Options:  # pylint: disable=too-many-instance-attributes
 class Column:
     """One implementation's results, or the reason it has none."""
 
-    impl: core.Impl
+    impl: Impl
     corpus: Corpus | None = None
     run: Run | None = None
     """The verdict, which hbt.conformance reaches; present whenever the column is available."""
@@ -105,8 +114,8 @@ def corpus_root(root: Path, name: str) -> Path:
     """
     gitmodules = root / name / ".gitmodules"
     try:
-        paths = sorted(path for path, url in core.submodules(gitmodules).items() if _is_corpus(url))
-    except core.CommandError as exc:
+        paths = sorted(path for path, url in submodules(gitmodules).items() if _is_corpus(url))
+    except CommandError as exc:
         raise CorpusError(str(exc)) from exc
     if len(paths) != 1:
         found = "none" if not paths else ", ".join(paths)
@@ -127,7 +136,7 @@ def locate(root: Path, names: Sequence[str], override: Path | None) -> dict[str,
         try:
             shared = Corpus.discover(override)
         except CorpusError as exc:
-            raise core.CommandError(str(exc)) from exc
+            raise CommandError(str(exc)) from exc
         return dict.fromkeys(names, shared)
     corpora: dict[str, Corpus | str] = {}
     for name in names:
@@ -139,7 +148,7 @@ def locate(root: Path, names: Sequence[str], override: Path | None) -> dict[str,
 
 
 def check_column(
-    impl: core.Impl, corpus: Corpus | str, selected: Sequence[Fixture], waivers: Path | None, options: Options
+    impl: Impl, corpus: Corpus | str, selected: Sequence[Fixture], waivers: Path | None, options: Options
 ) -> Column:
     """Run one implementation over its selected fixtures."""
     if isinstance(corpus, str):
@@ -235,7 +244,7 @@ def _waiver_files(specs: tuple[str, ...], known: list[str]) -> dict[str, Path]:
     files = {n: Path(v) for n, v in parse_pairs(specs, "--waivers", "NAME=FILE", known).items()}
     for path in files.values():
         if not path.is_file():
-            raise core.CommandError(f"--waivers: no such file {path}")
+            raise CommandError(f"--waivers: no such file {path}")
     return files
 
 
@@ -250,7 +259,7 @@ def _list(corpora: Mapping[str, Corpus | str], fixtures: Sequence[str], out: Tex
 
 def run(selection: Selection, options: Options, out: TextIO) -> int:
     """Check the selected implementations; 0 if every one of them conformed."""
-    root = core.repo_root()
+    root = repo_root()
     known, names, overrides, revisions = choose(root, selection)
     waivers = _waiver_files(options.waivers, known)
 
@@ -266,11 +275,11 @@ def run(selection: Selection, options: Options, out: TextIO) -> int:
     # A corpus is refused if it has no fixtures, so with one selected an empty
     # list can only mean the filters matched nothing.
     if not selected:
-        raise core.CommandError("no implementation has a corpus to check")
+        raise CommandError("no implementation has a corpus to check")
     if not fixtures:
-        raise core.CommandError(f"no fixture matches {' '.join(patterns)}")
+        raise CommandError(f"no fixture matches {' '.join(patterns)}")
 
-    impls = core.discover(root, names, overrides, revisions)
+    impls = discover(root, names, overrides, revisions)
     columns = [
         check_column(impl, corpora[impl.name], selected.get(impl.name, []), waivers.get(impl.name), options)
         for impl in impls

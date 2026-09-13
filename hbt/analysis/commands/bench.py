@@ -1,4 +1,8 @@
-"""The `bench` command: time every implementation over a corpus, and report it."""
+"""The `bench` command: time every implementation over a corpus, and report it.
+
+The benchmarking itself is :mod:`hbt.bench`; this finds the implementations,
+hands them over, and decides which files a run may write.
+"""
 
 from __future__ import annotations
 
@@ -9,8 +13,9 @@ from typing import Any
 
 import click
 
-from hbt.bench import core, report
-from hbt.bench.selection import Selection, choose, invoke, selection_options
+from hbt.analysis.commands import invoke, selection_options
+from hbt.analysis.implementations import CommandError, Selection, build, choose, discover, repo_root
+from hbt.bench import BenchmarkError, benchmark, collect, dump_results, load_corpus, load_results, render, verify
 
 
 @dataclass(frozen=True)
@@ -43,7 +48,7 @@ def write(path: Path, text: str) -> None:
 
 def write_report(data: dict[str, Any], path: Path | None) -> None:
     """Render `data` and write it, defaulting to stdout when no path is given."""
-    text = report.render(data)
+    text = render(data)
     if path is None:
         sys.stdout.write(text)
         return
@@ -51,15 +56,26 @@ def write_report(data: dict[str, Any], path: Path | None) -> None:
 
 
 def run(selection: Selection, options: Options) -> int:
-    """Run the benchmark (or just re-render) and write the outputs."""
+    """Run the benchmark (or just re-render) and write the outputs.
+
+    The library's refusals become this command's, the way `conformance`
+    translates the harness's.
+    """
+    try:
+        return _run(selection, options)
+    except BenchmarkError as exc:
+        raise CommandError(str(exc)) from exc
+
+
+def _run(selection: Selection, options: Options) -> int:
     if options.report_only:
         # Deliberately before repo_root(): re-rendering must work outside a git
         # checkout, because the Nix derivation that builds the published page
         # does exactly that in the sandbox.
-        write_report(core.load_results(options.report_only), options.report)
+        write_report(load_results(options.report_only), options.report)
         return 0
 
-    root = core.repo_root()
+    root = repo_root()
     bench_dir = root / "benchmarks"
     published = bench_dir / "results.json"
     output = options.output or published
@@ -70,19 +86,19 @@ def run(selection: Selection, options: Options) -> int:
     # "was -o given", so naming the file explicitly is refused too -- which file
     # gets written is the invariant, not how the caller chose it.
     if options.info_only and output.resolve() == published.resolve():
-        raise core.CommandError(f"--info-only writes no timings; -o must not be {published}")
+        raise CommandError(f"--info-only writes no timings; -o must not be {published}")
 
     _, names, overrides, revisions = choose(root, selection)
     # --build refreshes the result-* symlinks, which an override bypasses.
     if options.build:
-        core.build(root, [n for n in names if n not in overrides])
-    impls = core.discover(root, names, overrides, revisions)
+        build(root, [n for n in names if n not in overrides])
+    impls = discover(root, names, overrides, revisions)
     if not any(i.available for i in impls):
-        raise core.CommandError("no built implementations found; try --build")
-    inputs = core.load_corpus(root, options.corpus or bench_dir / "corpus.toml")
-    pairs = core.verify(impls, inputs)
-    hyperfine = None if options.info_only else core.benchmark(pairs, inputs, options.warmup, options.min_runs)
-    data = core.collect(impls, inputs, pairs, hyperfine)
+        raise CommandError("no built implementations found; try --build")
+    inputs = load_corpus(root, options.corpus or bench_dir / "corpus.toml")
+    pairs = verify(impls, inputs)
+    hyperfine = None if options.info_only else benchmark(pairs, inputs, options.warmup, options.min_runs)
+    data = collect(impls, inputs, pairs, hyperfine)
 
     # A corpus none of whose inputs exist still produces a document, and that
     # document is what the Pages workflow publishes. Refuse to write one rather
@@ -91,11 +107,11 @@ def run(selection: Selection, options: Options) -> int:
     # entity counts are what has to be there instead.
     if options.info_only:
         if not any(p.ok for p in pairs):
-            raise core.CommandError("nothing was parsed; check the corpus paths")
+            raise CommandError("nothing was parsed; check the corpus paths")
     elif not any(p.timing for p in pairs):
-        raise core.CommandError("nothing was benchmarked; check the corpus paths")
+        raise CommandError("nothing was benchmarked; check the corpus paths")
 
-    write(output, core.dump_results(data))
+    write(output, dump_results(data))
 
     # No default path: results.json is the only file this leaves in the tree.
     # Markdown and HTML are translations of it -- report.md goes to stdout
@@ -125,10 +141,11 @@ def run(selection: Selection, options: Options) -> int:
 )
 @click.option(
     "--report-only",
-    # Deliberately not `exists=True`: `core.load_results` diagnoses a missing
-    # or malformed results file, and that one message is what `nix build
-    # .#site` should fail with.  Two checks would mean two wordings for the
-    # same mistake, and would leave the one core.py documents unreachable.
+    # Deliberately not `exists=True`: `hbt.bench.load_results` diagnoses a
+    # missing or malformed results file, and that one message is what `nix
+    # build .#site` should fail with.  Two checks would mean two wordings for
+    # the same mistake, and would leave the one the library documents
+    # unreachable.
     type=click.Path(dir_okay=False, path_type=Path),
     metavar="RESULTS",
     help="re-render a saved results file",

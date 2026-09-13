@@ -19,9 +19,8 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-from hbt.bench import core
-from hbt.bench.matrix import Options, corpus_root, run
-from hbt.bench.selection import Selection
+from hbt.analysis.commands.conformance import Options, corpus_root, run
+from hbt.analysis.implementations import CommandError, Selection
 from hbt.conformance.corpus import CorpusError
 
 DOCUMENT = """version: 0.1.0
@@ -79,8 +78,8 @@ class Run(unittest.TestCase):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.corpus = self.root / "corpus"
         self.write_fixture(self.corpus)
-        self.enterContext(patch.object(core, "repo_root", return_value=self.root))
-        self.enterContext(patch.object(core, "implementations", return_value=["hbt-x", "hbt-y"]))
+        self.enterContext(patch("hbt.analysis.commands.conformance.repo_root", return_value=self.root))
+        self.enterContext(patch("hbt.analysis.implementations.implementations", return_value=["hbt-x", "hbt-y"]))
 
     def write_fixture(self, corpus: Path) -> None:
         (corpus / "markdown").mkdir(parents=True)
@@ -146,7 +145,7 @@ class Run(unittest.TestCase):
     def test_a_corpus_with_no_fixtures_does_not_pass(self) -> None:
         empty = self.root / "empty"
         empty.mkdir()
-        with self.assertRaisesRegex(core.CommandError, "no fixtures"):
+        with self.assertRaisesRegex(CommandError, "no fixtures"):
             self.run_matrix(corpus=empty)
 
     def test_list_runs_nothing(self) -> None:
@@ -155,5 +154,5 @@ class Run(unittest.TestCase):
         self.assertEqual(output, "markdown/a\n")
 
     def test_a_filter_that_matches_nothing_is_refused(self) -> None:
-        with self.assertRaisesRegex(core.CommandError, "no fixture matches"):
+        with self.assertRaisesRegex(CommandError, "no fixture matches"):
             self.run_matrix(corpus=self.corpus, patterns=("nope",))
