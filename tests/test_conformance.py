@@ -83,10 +83,10 @@ class Run(unittest.TestCase):
         self.enterContext(patch.object(conformance, "repo_root", return_value=self.root))
         self.enterContext(patch.object(implementations, "implementations", return_value=["hbt-x", "hbt-y"]))
 
-    def write_fixture(self, corpus: Path) -> None:
+    def write_fixture(self, corpus: Path, stem: str = "a") -> None:
         (corpus / "markdown").mkdir(parents=True)
-        (corpus / "markdown" / "a.input.md").write_text("# a\n", encoding="utf-8")
-        (corpus / "markdown" / "a.expected.yaml").write_text(DOCUMENT, encoding="utf-8")
+        (corpus / "markdown" / f"{stem}.input.md").write_text(f"# {stem}\n", encoding="utf-8")
+        (corpus / "markdown" / f"{stem}.expected.yaml").write_text(DOCUMENT, encoding="utf-8")
 
     def stub(self, name: str, output: str) -> str:
         path = self.root / name
@@ -143,6 +143,22 @@ class Run(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertRegex(output, r"markdown/a\s+PASS\s+-")
         self.assertRegex(output, r"hbt-y\s+unavailable: could not read")
+
+    def test_a_filter_may_select_nothing_from_one_pinned_corpus(self) -> None:
+        """The pins differ, so a fixture can be absent from one column's corpus.
+
+        That column ran nothing, which is not a failure: the header says which
+        corpus it ran, and the other column still holds the fixture to account.
+        """
+        for name, stem in (("hbt-x", "a"), ("hbt-y", "b")):
+            (self.root / name).mkdir()
+            _submodule(self.root / name / ".gitmodules", "data", "data", "https://github.com/henrytill/hbt-data.git")
+            self.write_fixture(self.root / name / "data", stem)
+        good = self.stub("good", DOCUMENT)
+        status, output = self.run_matrix(binary=(f"hbt-x={good}", f"hbt-y={good}"), patterns=("markdown/a",))
+        self.assertEqual(status, 0)
+        self.assertRegex(output, r"markdown/a\s+PASS\s+-")
+        self.assertRegex(output, r"hbt-y\s+nothing ran")
 
     def test_a_corpus_with_no_fixtures_does_not_pass(self) -> None:
         empty = self.root / "empty"
