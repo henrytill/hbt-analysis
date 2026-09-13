@@ -70,7 +70,7 @@ def run(selection: Selection, options: Options) -> int:
     # "was -o given", so naming the file explicitly is refused too -- which file
     # gets written is the invariant, not how the caller chose it.
     if options.info_only and output.resolve() == published.resolve():
-        raise core.BenchmarkError(f"--info-only writes no timings; -o must not be {published}")
+        raise core.CommandError(f"--info-only writes no timings; -o must not be {published}")
 
     _, names, overrides, revisions = choose(root, selection)
     # --build refreshes the result-* symlinks, which an override bypasses.
@@ -78,7 +78,7 @@ def run(selection: Selection, options: Options) -> int:
         core.build(root, [n for n in names if n not in overrides])
     impls = core.discover(root, names, overrides, revisions)
     if not any(i.available for i in impls):
-        raise core.BenchmarkError("no built implementations found; try --build")
+        raise core.CommandError("no built implementations found; try --build")
     inputs = core.load_corpus(root, options.corpus or bench_dir / "corpus.toml")
     pairs = core.verify(impls, inputs)
     hyperfine = None if options.info_only else core.benchmark(pairs, inputs, options.warmup, options.min_runs)
@@ -91,9 +91,9 @@ def run(selection: Selection, options: Options) -> int:
     # entity counts are what has to be there instead.
     if options.info_only:
         if not any(p.ok for p in pairs):
-            raise core.BenchmarkError("nothing was parsed; check the corpus paths")
+            raise core.CommandError("nothing was parsed; check the corpus paths")
     elif not any(p.timing for p in pairs):
-        raise core.BenchmarkError("nothing was benchmarked; check the corpus paths")
+        raise core.CommandError("nothing was benchmarked; check the corpus paths")
 
     write(output, core.dump_results(data))
 

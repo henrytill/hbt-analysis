@@ -45,8 +45,13 @@ ENTITIES_RE = re.compile(r"(\d+)\s+entities")
 FORMAT_VERSION = "0.1.0"
 
 
-class BenchmarkError(Exception):
-    """A condition that should stop the run with a message, not a traceback."""
+class CommandError(Exception):
+    """A condition that should stop a command with a message, not a traceback.
+
+    Every command's, not only `bench`'s: `hbt.bench.selection.invoke` turns it
+    into exit status 2 for all of them, so a command refuses by raising this
+    rather than by a type of its own.
+    """
 
 
 @dataclass
@@ -132,7 +137,7 @@ def submodules(gitmodules: Path) -> dict[str, str]:
         check=False,
     )
     if out.returncode != 0:
-        raise BenchmarkError(f"could not read {gitmodules}")
+        raise CommandError(f"could not read {gitmodules}")
     sections: dict[str, dict[str, str]] = {}
     for line in out.stdout.splitlines():
         key, _, value = line.partition(" ")
@@ -155,7 +160,7 @@ def implementations(root: Path) -> list[str]:
     """
     names = sorted(submodules(root / ".gitmodules"))
     if not names:
-        raise BenchmarkError(f"no submodules in {root / '.gitmodules'}")
+        raise CommandError(f"no submodules in {root / '.gitmodules'}")
     return names
 
 
@@ -177,9 +182,9 @@ def load_results(path: Path) -> dict[str, Any]:
         with path.open(encoding="utf-8") as f:
             data: dict[str, Any] = json.load(f)
     except FileNotFoundError as exc:
-        raise BenchmarkError(f"{path}: no such results file") from exc
+        raise CommandError(f"{path}: no such results file") from exc
     except json.JSONDecodeError as exc:
-        raise BenchmarkError(f"{path}: not valid JSON: {exc}") from exc
+        raise CommandError(f"{path}: not valid JSON: {exc}") from exc
     return data
 
 
@@ -198,7 +203,7 @@ def hyperfine_cmd() -> list[str]:
         return ["hyperfine"]
     if shutil.which("nix"):
         return ["nix", "run", "nixpkgs#hyperfine", "--"]
-    raise BenchmarkError("neither hyperfine nor nix found on PATH")
+    raise CommandError("neither hyperfine nor nix found on PATH")
 
 
 def load_corpus(root: Path, path: Path) -> list[Input]:
@@ -207,14 +212,14 @@ def load_corpus(root: Path, path: Path) -> list[Input]:
         with path.open("rb") as f:
             data = tomllib.load(f)
     except FileNotFoundError as exc:
-        raise BenchmarkError(f"{path}: no such corpus file") from exc
+        raise CommandError(f"{path}: no such corpus file") from exc
     inputs: list[Input] = []
     for entry in data.get("input", []):
         # `/` returns the right operand when it is absolute, so this covers
         # both the absolute and repo-relative cases.
         inputs.append(Input(entry["name"], root / Path(entry["path"]).expanduser()))
     if not inputs:
-        raise BenchmarkError(f"{path}: no [[input]] entries")
+        raise CommandError(f"{path}: no [[input]] entries")
     return inputs
 
 

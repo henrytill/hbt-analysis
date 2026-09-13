@@ -155,7 +155,7 @@ class Run(unittest.TestCase):
     def test_a_corpus_with_no_fixtures_does_not_pass(self) -> None:
         empty = self.root / "empty"
         empty.mkdir()
-        with self.assertRaisesRegex(core.BenchmarkError, "no fixtures"):
+        with self.assertRaisesRegex(core.CommandError, "no fixtures"):
             self.run_matrix(corpus=empty)
 
     def test_list_runs_nothing(self) -> None:
@@ -164,5 +164,5 @@ class Run(unittest.TestCase):
         self.assertEqual(output, "markdown/a\n")
 
     def test_a_filter_that_matches_nothing_is_refused(self) -> None:
-        with self.assertRaisesRegex(core.BenchmarkError, "no fixture matches"):
+        with self.assertRaisesRegex(core.CommandError, "no fixture matches"):
             self.run_matrix(corpus=self.corpus, patterns=("nope",))
