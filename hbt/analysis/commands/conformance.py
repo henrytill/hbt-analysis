@@ -101,11 +101,7 @@ def locate(root: Path, names: Sequence[str], override: Path | None) -> dict[str,
     its column's error.  An override is the caller's, so it stops the run.
     """
     if override is not None:
-        try:
-            shared = Corpus.discover(override)
-        except CorpusError as exc:
-            raise CommandError(str(exc)) from exc
-        return dict.fromkeys(names, shared)
+        return dict.fromkeys(names, Corpus.discover(override))
     corpora: dict[str, Corpus | str] = {}
     for name in names:
         try:

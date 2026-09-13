@@ -23,6 +23,7 @@ from hbt.analysis import implementations
 from hbt.analysis.commands import CommandError, conformance
 from hbt.analysis.commands.conformance import Options, run
 from hbt.analysis.implementations import ImplementationError, Selection, corpus_root
+from hbt.conformance import CorpusError
 
 DOCUMENT = """version: 0.1.0
 length: 0
@@ -146,7 +147,7 @@ class Run(unittest.TestCase):
     def test_a_corpus_with_no_fixtures_does_not_pass(self) -> None:
         empty = self.root / "empty"
         empty.mkdir()
-        with self.assertRaisesRegex(CommandError, "no fixtures"):
+        with self.assertRaisesRegex(CorpusError, "no fixtures"):
             self.run_matrix(corpus=empty)
 
     def test_list_runs_nothing(self) -> None:
