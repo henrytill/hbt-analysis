@@ -119,6 +119,28 @@ class Pair:
         }
 
 
+def submodules(gitmodules: Path) -> dict[str, str]:
+    """Each submodule path in `gitmodules`, mapped to its URL.
+
+    Read with `git config` rather than parsed here, the way both scripts read
+    it too.
+    """
+    out = subprocess.run(
+        ["git", "config", "--file", str(gitmodules), "--get-regexp", r"^submodule\..*\.(path|url)$"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if out.returncode != 0:
+        raise BenchmarkError(f"could not read {gitmodules}")
+    sections: dict[str, dict[str, str]] = {}
+    for line in out.stdout.splitlines():
+        key, _, value = line.partition(" ")
+        section, _, attribute = key.rpartition(".")
+        sections.setdefault(section, {})[attribute] = value
+    return {s["path"]: s.get("url", "") for s in sections.values() if "path" in s}
+
+
 def implementations(root: Path) -> list[str]:
     """The implementations, read from .gitmodules.
 
@@ -131,15 +153,7 @@ def implementations(root: Path) -> list[str]:
     Sorted, because .gitmodules is in the order entries happened to be added
     and the report's column order should not be.
     """
-    out = subprocess.run(
-        ["git", "config", "--file", str(root / ".gitmodules"), "--get-regexp", r"^submodule\..*\.path$"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if out.returncode != 0:
-        raise BenchmarkError(f"could not read {root / '.gitmodules'}")
-    names = sorted(line.split(" ", 1)[1] for line in out.stdout.splitlines() if " " in line)
+    names = sorted(submodules(root / ".gitmodules"))
     if not names:
         raise BenchmarkError(f"no submodules in {root / '.gitmodules'}")
     return names
