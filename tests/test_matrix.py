@@ -150,6 +150,12 @@ class Run(unittest.TestCase):
         self.assertRegex(output, r"markdown/a\s+PASS\s+-")
         self.assertRegex(output, r"hbt-y\s+unavailable: could not read")
 
+    def test_a_corpus_with_no_fixtures_does_not_pass(self) -> None:
+        empty = self.root / "empty"
+        empty.mkdir()
+        with self.assertRaisesRegex(core.BenchmarkError, "no fixtures"):
+            self.run_matrix(corpus=empty)
+
     def test_list_runs_nothing(self) -> None:
         status, output = self.run_matrix(corpus=self.corpus, list_only=True)
         self.assertEqual(status, 0)
