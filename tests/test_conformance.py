@@ -19,6 +19,8 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
+from hbt.analysis import implementations
+from hbt.analysis.commands import conformance
 from hbt.analysis.commands.conformance import Options, corpus_root, run
 from hbt.analysis.implementations import CommandError, Selection
 from hbt.conformance.corpus import CorpusError
@@ -78,8 +80,8 @@ class Run(unittest.TestCase):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.corpus = self.root / "corpus"
         self.write_fixture(self.corpus)
-        self.enterContext(patch("hbt.analysis.commands.conformance.repo_root", return_value=self.root))
-        self.enterContext(patch("hbt.analysis.implementations.implementations", return_value=["hbt-x", "hbt-y"]))
+        self.enterContext(patch.object(conformance, "repo_root", return_value=self.root))
+        self.enterContext(patch.object(implementations, "implementations", return_value=["hbt-x", "hbt-y"]))
 
     def write_fixture(self, corpus: Path) -> None:
         (corpus / "markdown").mkdir(parents=True)

@@ -22,6 +22,7 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
+from hbt.analysis import implementations
 from hbt.analysis.cli import cli
 from hbt.analysis.commands import bench, conformance
 from hbt.analysis.implementations import CommandError, Selection, parse_pairs
@@ -100,7 +101,7 @@ class Invocation(unittest.TestCase):
 
     def test_info_only_refuses_the_published_results_file(self) -> None:
         """A document with no timings must never become the published one."""
-        with patch("hbt.analysis.commands.bench.repo_root", return_value=self.root):
+        with patch.object(bench, "repo_root", return_value=self.root):
             result = self.runner.invoke(cli, ["bench", "--info-only"])
         self.assertEqual(result.exit_code, 2)
         self.assertIn("--info-only writes no timings", result.output)
@@ -108,8 +109,8 @@ class Invocation(unittest.TestCase):
     def test_an_unknown_implementation_is_refused(self) -> None:
         (self.root / "benchmarks").mkdir()
         with (
-            patch("hbt.analysis.commands.bench.repo_root", return_value=self.root),
-            patch("hbt.analysis.implementations.implementations", return_value=["hbt-rs"]),
+            patch.object(bench, "repo_root", return_value=self.root),
+            patch.object(implementations, "implementations", return_value=["hbt-rs"]),
         ):
             result = self.runner.invoke(
                 cli, ["bench", "--impl", "nope", "--info-only", "-o", str(self.root / "out.json")]
