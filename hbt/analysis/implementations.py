@@ -49,11 +49,6 @@ class Impl:
     # indistinguishable from a complete one.
     error: str | None = None
 
-    @property
-    def available(self) -> bool:
-        """Whether this implementation can actually be run."""
-        return self.binary is not None
-
     def serialize(self) -> dict[str, Any]:
         """The document's view of this implementation."""
         return {

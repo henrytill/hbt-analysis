@@ -93,7 +93,7 @@ def _run(selection: Selection, options: Options) -> int:
     if options.build:
         build(root, [n for n in names if n not in overrides])
     impls = discover(root, names, overrides, revisions)
-    if not any(i.available for i in impls):
+    if not any(i.binary is not None for i in impls):
         raise CommandError("no built implementations found; try --build")
     inputs = load_corpus(root, options.corpus or bench_dir / "corpus.toml")
     pairs = verify(impls, inputs)
