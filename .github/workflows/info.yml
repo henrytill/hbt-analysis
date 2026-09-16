@@ -30,8 +30,11 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v17
+        with:
+          name: henrytill
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       # .#bench builds all four implementations from their own flakes and passes
       # each one as --binary, so this is also the only workflow that would
