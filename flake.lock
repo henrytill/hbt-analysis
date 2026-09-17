@@ -275,10 +275,10 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1789613885,
-        "narHash": "sha256-zku1S33Gmw/gUuImUrCKN80fZjYza/0B5Y7lIcRkRGE=",
-        "rev": "4c5460551390e26099268822c1bd9c13a7fb5701",
-        "revCount": 271,
+        "lastModified": 1789674654,
+        "narHash": "sha256-2sCxEiixCA96NXoUBHIA3yIMCkA+9vvhwIj5B4KhXmQ=",
+        "rev": "32bcde0bbed018e8a3c2069e838194632c735762",
+        "revCount": 273,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-go"
@@ -298,10 +298,10 @@
         "uri-bytestring-src": "uri-bytestring-src"
       },
       "locked": {
-        "lastModified": 1789633081,
-        "narHash": "sha256-D65qqHNEXPzIAjrXCCXAhaT7EhTLtfjdeLrV9N3UrP8=",
-        "rev": "8ba9f989d2411fdff3e7c4d957dfd1a7516f03a6",
-        "revCount": 483,
+        "lastModified": 1789674860,
+        "narHash": "sha256-p7eg1La8gwNLGhsnhCzKU69f91yms4ATgWZ4co5Yd7k=",
+        "rev": "766223a01823a5a30bdf1f04af31cff53a753b67",
+        "revCount": 484,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-hs"
@@ -324,10 +324,10 @@
         "opam-repository": "opam-repository"
       },
       "locked": {
-        "lastModified": 1789618654,
-        "narHash": "sha256-N5mpKllZR8DRWzFY0Uby5WA7Cg14O3jxSu2j+ZLgjMY=",
-        "rev": "d1964a6867cbbf5f248fecb5225f5e4e6f7c7ca2",
-        "revCount": 546,
+        "lastModified": 1789674807,
+        "narHash": "sha256-lyFYePqluc3QbH939Z+T2gTvD1xb0tPmKoiCggPb96k=",
+        "rev": "ae8d935be62e60ebd2b2a48742b1ca2da52e0cde",
+        "revCount": 548,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-ocaml"
@@ -346,10 +346,10 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1789616065,
-        "narHash": "sha256-zHDLtIZ+l+nqhNgh5OfFS33MeTD5AuDOAxfTFcppaDc=",
-        "rev": "51135582208bf54aa42de61838fc582b947f4bc7",
-        "revCount": 437,
+        "lastModified": 1789674605,
+        "narHash": "sha256-QjVcz6nXoy8XZNisYu7Im2i3iwrfuMeq4pPTn0Z5fW4=",
+        "rev": "557d765b7e672202a51a972b233910903ae35a19",
+        "revCount": 439,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-rs"
