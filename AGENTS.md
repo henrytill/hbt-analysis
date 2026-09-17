@@ -5,7 +5,7 @@ This file provides guidance to coding agents working in this repository. `CLAUDE
 **Two rules that prevent most wasted moves here:**
 
 1. **Nothing works outside Nix.** There is no system-wide `cargo`, `go`, `dune`, `ghc`, or `cabal`. Enter a dev shell first: `cd hbt-rs && nix develop`. The root has one too, for the benchmark harness and the bash scripts.
-2. **Every submodule pointer goes stale**, in two layers. A failing golden test is more often an old pin than a parser bug — see [The shared test-data contract](#the-shared-test-data-contract-hbt-data). `scripts/update-submodules.sh -n` reports the drift in a few seconds.
+2. **Every submodule pointer goes stale**, in two layers. A failing conformance fixture is more often an old pin than a parser bug — see [The shared test-data contract](#the-shared-test-data-contract-hbt-data). `scripts/update-submodules.sh -n` reports the drift in a few seconds.
 
 ## What this repository is
 
@@ -20,7 +20,7 @@ This file provides guidance to coding agents working in this repository. `CLAUDE
 
 The root holds one piece of source, the Python distribution `hbt-analysis`: the executable of that name (`hbt/analysis/`) and the benchmark library it drives (`hbt/bench/`). Its `bench` command is the benchmark harness (`nix run .#bench`). It builds all four implementations from their own flakes, records `--info` entity counts, times each input across all four with `hyperfine`, and writes `benchmarks/results.json` — the one committed benchmark file. The Markdown report and the HTML page are both translations of it and are never committed: the report renders to stdout (or to `-r FILE`), and the page is a Nix build output. `README.md` documents it. `nix build .#site` renders the committed `benchmarks/results.json` into a standalone HTML page under `share/doc/hbt-analysis/html/`, which `.github/workflows/pages.yml` deploys to GitHub Pages — the same shape `henrytill/atp` uses. **Nothing is ever timed in CI**; the workflow only renders results produced by a local run. It replaced an org-babel notebook whose numbers carried no provenance.
 
-The same executable carries a `conformance` command (`hbt/analysis/commands/conformance.py`, `nix run .#conformance`), step 4 of `henrytill/hbt-data#14`: every implementation held to the corpus by `hbt.conformance`, the harness that lives in `hbt-data`, laid out one column per implementation. It imports the comparison rather than reimplementing it, and checks each implementation against the corpus *that implementation* pins — located by URL in its `.gitmodules`, because the mount paths differ and are being moved to `hbt-data/` one implementation at a time. The harness arrives as the `hbt-data` **flake input**, not a fifth submodule: `.gitmodules` is the list of implementations to `hbt.analysis.implementations` and both scripts, and the flake reads its `names` from `.gitmodules` too, rather than from the `hbt-` input prefix this input shares. Editing the harness in `/home/ht/src/hbt-data`? `--override-input hbt-data path:../hbt-data` puts the change in the matrix. Unlike the timings, the matrix *does* run in CI — the `info` workflow fails on it.
+The same executable carries a `conformance` command (`hbt/analysis/commands/conformance.py`, `nix run .#conformance`), step 4 of `henrytill/hbt-data#14`: every implementation held to the corpus by `hbt.conformance`, the harness that lives in `hbt-data`, laid out one column per implementation. It imports the comparison rather than reimplementing it, and checks each implementation against the corpus *that implementation* pins — located by URL in its `.gitmodules`, because each implementation mounts it at its own path. The harness arrives as the `hbt-data` **flake input**, not a fifth submodule: `.gitmodules` is the list of implementations to `hbt.analysis.implementations` and both scripts, and the flake reads its `names` from `.gitmodules` too, rather than from the `hbt-` input prefix this input shares. Editing the harness in `/home/ht/src/hbt-data`? `--override-input hbt-data path:../hbt-data` puts the change in the matrix. Unlike the timings, the matrix *does* run in CI — the `info` workflow fails on it.
 
 **You almost certainly cannot re-run the real benchmark.** The corpus in `benchmarks/corpus.toml` points at the author's private bookmark exports (`~/src/notes/all-2024.md`, `~/src/bookmarks/*`); they are in no repo and do not exist in a fresh checkout, so refreshing the numbers is not work an agent can do. Point the corpus at the `hbt-data` fixtures for a smoke test — they exercise every code path but are far too small to time meaningfully.
 
@@ -36,7 +36,7 @@ Rebuild only when you have moved a pointer. They are gitignored Nix store paths.
 
 Work in this repo is usually *within* one submodule. Commits at the root are almost always submodule pointer bumps (`git add hbt-rs && git commit`), and changes to a submodule must be committed and pushed in that submodule's own repo first.
 
-To advance the four top-level pointers to their upstream default branches, run `scripts/update-submodules.sh` — `-n`/`--dry-run` reports what would move without touching anything. It stages the bumps and leaves them for you to review and commit; it reports and skips a submodule it cannot check out (a worktree left dirty by a local build), and exits non-zero if any were skipped. It also re-checkouts the nested `hbt-data` copies to whatever the new revisions pin, which is otherwise the step whose omission shows up as mass golden-test failures. A monthly workflow runs the same script and opens a pull request; that half lives in `scripts/open-submodule-pr.sh`, which refuses to run outside CI.
+To advance the four top-level pointers to their upstream default branches, run `scripts/update-submodules.sh` — `-n`/`--dry-run` reports what would move without touching anything. It stages the bumps and leaves them for you to review and commit; it reports and skips a submodule it cannot check out (a worktree left dirty by a local build), and exits non-zero if any were skipped. It also re-checkouts the nested `hbt-data` copies to whatever the new revisions pin, which is otherwise the step whose omission shows up as mass conformance failures. A monthly workflow runs the same script and opens a pull request; that half lives in `scripts/open-submodule-pr.sh`, which refuses to run outside CI.
 
 ## Building and testing
 
@@ -57,7 +57,7 @@ Each flake exposes a default plus per-binary and `-static` variants; `hbt-go` ex
 
 Static builds go through the `-static` attrs, **not** through a dev shell: `dune build --profile static` inside the `hbt-ocaml` shell fails to link (`cannot find -lm/-lpthread/-lc`) because the static profile needs the musl package set. Use `nix build ./hbt-ocaml#hbt-cli-static`.
 
-The root defines `checks.mypy`. Among the submodules only `hbt-ocaml` and `hbt-rs` define flake `checks`; `nix flake check` is a no-op in the other two, whose CI runs `nix build` / `make` instead. `nix flake check ./hbt-rs# --no-build` reports what would run without running it.
+The root defines `checks.mypy`. Each of the four implementations defines a `conformance` flake check (hbt-rs's checks also build its packages and run clippy, cargo-deny and rustfmt; hbt-ocaml's build its packages); build one alone with `nix build ./hbt-go#checks.x86_64-linux.conformance`. `nix flake check ./hbt-rs# --no-build` reports what would run without running it.
 
 ### Dev shells
 
@@ -76,25 +76,25 @@ Inside each shell:
 ```sh
 # hbt-rs — rust-analyzer, cargo-deny
 cargo build && cargo test
-cargo test -p hbt-test --test parsing markdown::test_basic   # generated cases are named test_<stem>
-cargo test -p hbt-test --test parsing -- --list              # list them
+(cd test-data && python3 -m hbt.conformance --binary ../target/debug/hbt markdown/basic)   # one fixture
 cargo deny check                                             # see caveat below
 
 # hbt-go — gopls, gotools, staticcheck, universal-ctags
 make all           # bin/hbt, bin/pinboard
 make test
 make lint
-go test ./test -run TestMarkdownBasicYAML     # generated golden case: Test<Category><Stem><Format>
+make conformance   # the harness against bin/hbt
 
 # hbt-ocaml — ocaml-lsp, ocp-index, clang-tools, node/npm
 dune build
 dune runtest
+dune build @conformance   # the harness against a freshly built hbt
 npm run fmt        # node_modules linked by the shell's hook; do not `npm install`
 
 # hbt-hs — GHC 9.10.3 (the one pinned toolchain: `ghcName` in flake.nix), ghcid, fourmolu, hlint, weeder
 cabal build all
 cabal test all
-cabal test hbt-test    # core golden tests
+(cd test/data && python3 -m hbt.conformance --binary "$(cabal list-bin hbt)")
 ```
 
 `make` targets are defined in `hbt-go/GNUmakefile`; every other tool version floats with `flake.lock`.
@@ -122,13 +122,13 @@ Parity is close but not exact, and no shared test enforces it — check the `res
 
 All four submodules vendor the **same** corpus repo, `github.com/henrytill/hbt-data`, at different paths:
 
-- `hbt-rs/test-data/`, `hbt-go/testdata/`, `hbt-ocaml/test/data/`, `hbt-hs/core/test/data/`
+- `hbt-rs/test-data/`, `hbt-go/testdata/`, `hbt-ocaml/test/data/`, `hbt-hs/test/data/`
 
 The paths differ on purpose: each implementation keeps the corpus where its language and layout suggest. Nothing here depends on them, since `hbt.analysis.implementations` finds each corpus by URL.
 
 It holds the corpus and the conformance harness (`hbt.conformance`) that checks an `hbt` executable against it. Layout is `<category>/<name>.input.<ext>` paired with `<name>.expected.yaml` and, for HTML, `<name>.expected.html`, under `html/`, `markdown/`, `pinboard/xml/`, `pinboard/json/`. Case names describe the parsing edge they pin down (`inverted_parent`, `link_text_with_backticks`, `empty_link`, ...).
 
-Cases are *derived* from these filenames rather than hand-written, so adding one touches no test source. `hbt-rs`, `hbt-go` and `hbt-ocaml` are held to the corpus by the harness: a `conformance` flake check through hbt-data's exported `lib.check`, plus a run without Nix (hbt-data's composite action in hbt-rs's and hbt-go's CI, `make conformance` in hbt-go, `dune build @conformance` in hbt-ocaml). `hbt-hs` still walks the directory at runtime in `core/test/TestData.hs`, until step 5 of `henrytill/hbt-data#14` reaches it.
+Cases are *derived* from these filenames rather than hand-written, so adding one touches no test source. All four are held to the corpus by the harness: a `conformance` flake check through hbt-data's exported `lib.check`, plus a run without Nix (hbt-data's composite action in hbt-rs's and hbt-go's CI, `make conformance` in hbt-go, `dune build @conformance` in hbt-ocaml).
 
 This repo is the cross-language behavioral spec, so treat it accordingly:
 
@@ -142,7 +142,7 @@ This repo is the cross-language behavioral spec, so treat it accordingly:
   For the upstream side, compare against each project's default branch (`master` for all five):
   ```sh
   gh api repos/henrytill/hbt-data/commits/master --jq '.sha[0:7]'
-  for s in hbt-rs:test-data hbt-go:testdata hbt-ocaml:test/data hbt-hs:core/test/data; do
+  for s in hbt-rs:test-data hbt-go:testdata hbt-ocaml:test/data hbt-hs:test/data; do
     d=${s%%:*}
     printf '%-10s head=%s data=%s\n' "$d" \
       "$(gh api repos/henrytill/$d/commits/master --jq '.sha[0:7]')" \
