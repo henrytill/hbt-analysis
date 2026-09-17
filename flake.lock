@@ -179,6 +179,29 @@
     "hbt-data_2": {
       "inputs": {
         "flake-utils": [
+          "hbt-go",
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "hbt-go",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "path": "./testdata",
+        "type": "path"
+      },
+      "original": {
+        "path": "./testdata",
+        "type": "path"
+      },
+      "parent": [
+        "hbt-go"
+      ]
+    },
+    "hbt-data_3": {
+      "inputs": {
+        "flake-utils": [
           "hbt-rs",
           "flake-utils"
         ],
@@ -202,13 +225,14 @@
     "hbt-go": {
       "inputs": {
         "flake-utils": "flake-utils_2",
+        "hbt-data": "hbt-data_2",
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1789599923,
-        "narHash": "sha256-UXaqQ6Mr1yWq5nu7Xm5sX+AsX1N5FAVVAaAg1+re9EU=",
-        "rev": "73513a740139dd7a7c345a004679ccdc340025e5",
-        "revCount": 261,
+        "lastModified": 1789613885,
+        "narHash": "sha256-zku1S33Gmw/gUuImUrCKN80fZjYza/0B5Y7lIcRkRGE=",
+        "rev": "4c5460551390e26099268822c1bd9c13a7fb5701",
+        "revCount": 271,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-go"
@@ -269,7 +293,7 @@
       "inputs": {
         "crane": "crane",
         "flake-utils": "flake-utils_5",
-        "hbt-data": "hbt-data_2",
+        "hbt-data": "hbt-data_3",
         "nixpkgs": "nixpkgs_4",
         "rust-overlay": "rust-overlay"
       },
