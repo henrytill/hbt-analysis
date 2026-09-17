@@ -79,13 +79,15 @@ nix run .#conformance
 
 Builds the four implementations the same way `.#bench` does and holds each one to the [hbt-data](https://github.com/henrytill/hbt-data) corpus with `hbt-analysis conformance`, one column per implementation, one row per fixture. The comparison is not reimplemented here: the command imports `hbt.conformance`, the harness each implementation runs on its own, so the matrix and an implementation's own check cannot disagree about what a fixture means. It exits non-zero if any cell is not `PASS` or `XFAIL`.
 
-Each implementation is checked against the corpus **it** pins, found by URL in its own `.gitmodules`, not against one revision chosen here. The pins differ by design, so the header prints each column's corpus revision beside its build, and notes when they disagree. `--corpus DIR` checks all four against one directory instead — the way to ask whether everyone passes a corpus being edited. Waivers belong to an implementation, so they are given per column:
+Each implementation is checked against the corpus **it** pins, found by URL in its own `.gitmodules`, not against one revision chosen here. The pins differ by design, so the header prints each column's corpus revision beside its build, and notes when they disagree. `--corpus DIR` checks all four against one directory instead — the way to ask whether everyone passes a corpus being edited.
+
+Waivers belong to an implementation, so each carries its own `conformance.waivers` and the matrix reads it from there, by the same convention its own conformance run does — a fixture some implementation does not satisfy yet shows as `XFAIL` here without this repository being told who is broken. `--waivers NAME=FILE` replaces one implementation's file, for checking a binary that is not the submodule's:
 
 ```sh
 nix run .#conformance -- -q                                   # only rows some implementation did not pass
 nix run .#conformance -- markdown/basic 'html/*'              # filter, as hbt-conformance does
 nix run .#conformance -- --corpus ../hbt-data                 # everyone, against one checkout
-nix run .#conformance -- --waivers hbt-go=path/to/waivers     # per implementation
+nix run .#conformance -- --waivers hbt-go=path/to/waivers     # instead of its own file
 ```
 
 Under `.#conformance` the binaries are the `flake.lock` revisions, while each corpus is read from the working tree's nested checkout. When the lock falls behind the gitlinks those can pair a binary with a corpus newer than the one it pins — the header shows both, and `nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs` realigns them. In the dev shell, `python -m hbt.analysis conformance` falls back to the `result-hbt-*` symlinks as `bench` does.

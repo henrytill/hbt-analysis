@@ -14,6 +14,9 @@ from hbt.bench import reported_version
 # The repository an implementation's corpus submodule points at, by name.
 CORPUS_REPOSITORY = "hbt-data"
 
+# Where an implementation records the fixtures it does not yet satisfy.
+WAIVERS_FILE = "conformance.waivers"
+
 
 class ImplementationError(Exception):
     """An implementation, or the selection of one, that cannot be used as asked.
@@ -170,6 +173,22 @@ def discover(root: Path, names: list[str], overrides: dict[str, Path], revisions
         store = str(binary.resolve().parent.parent)
         impls.append(Impl(name, binary, store, reported_version([str(binary)]), revisions.get(name)))
     return impls
+
+
+def waivers_file(root: Path, name: str) -> Path | None:
+    """Implementation `name`'s waivers file, or None when it does not have one.
+
+    A convention rather than configuration, for the same reason corpus_root
+    reads the corpus out of .gitmodules: the file is what that implementation's
+    own conformance run reads, so finding it the same way here keeps this
+    matrix agreeing with those runs instead of restating their waivers in this
+    repository, which is the knowledge hbt-data#14 kept out of the harness.
+
+    Absence is the normal case -- an implementation that waives nothing has no
+    file -- so this returns None rather than raising.
+    """
+    path = root / name / WAIVERS_FILE
+    return path if path.is_file() else None
 
 
 def _is_corpus(url: str) -> bool:
