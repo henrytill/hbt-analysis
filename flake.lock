@@ -202,6 +202,29 @@
     "hbt-data_3": {
       "inputs": {
         "flake-utils": [
+          "hbt-hs",
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "hbt-hs",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "path": "./test/data",
+        "type": "path"
+      },
+      "original": {
+        "path": "./test/data",
+        "type": "path"
+      },
+      "parent": [
+        "hbt-hs"
+      ]
+    },
+    "hbt-data_4": {
+      "inputs": {
+        "flake-utils": [
           "hbt-ocaml",
           "flake-utils"
         ],
@@ -222,7 +245,7 @@
         "hbt-ocaml"
       ]
     },
-    "hbt-data_4": {
+    "hbt-data_5": {
       "inputs": {
         "flake-utils": [
           "hbt-rs",
@@ -270,14 +293,15 @@
         "commonmark-initial-src": "commonmark-initial-src",
         "dwergaz-src": "dwergaz-src",
         "flake-utils": "flake-utils_3",
+        "hbt-data": "hbt-data_3",
         "nixpkgs": "nixpkgs_2",
         "uri-bytestring-src": "uri-bytestring-src"
       },
       "locked": {
-        "lastModified": 1789599793,
-        "narHash": "sha256-eE9YhFQwMr7+TxIBjF/xbPtIfr+ElEG8IefyHQVVGN0=",
-        "rev": "c884dfa873d80005b5d221772bc2400aa898a6f0",
-        "revCount": 473,
+        "lastModified": 1789633081,
+        "narHash": "sha256-D65qqHNEXPzIAjrXCCXAhaT7EhTLtfjdeLrV9N3UrP8=",
+        "rev": "8ba9f989d2411fdff3e7c4d957dfd1a7516f03a6",
+        "revCount": 483,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-hs"
@@ -294,7 +318,7 @@
           "opam-nix",
           "flake-utils"
         ],
-        "hbt-data": "hbt-data_3",
+        "hbt-data": "hbt-data_4",
         "nixpkgs": "nixpkgs_3",
         "opam-nix": "opam-nix",
         "opam-repository": "opam-repository"
@@ -317,7 +341,7 @@
       "inputs": {
         "crane": "crane",
         "flake-utils": "flake-utils_5",
-        "hbt-data": "hbt-data_4",
+        "hbt-data": "hbt-data_5",
         "nixpkgs": "nixpkgs_4",
         "rust-overlay": "rust-overlay"
       },
