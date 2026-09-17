@@ -298,10 +298,10 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1789599896,
-        "narHash": "sha256-0x3YhGvNR+c03rHeVIJNw62ObUf4mCRu4Ux2EXfusNE=",
-        "rev": "5b9c0adf5e34ba7aa2098097137ce875f106ab09",
-        "revCount": 434,
+        "lastModified": 1789616065,
+        "narHash": "sha256-zHDLtIZ+l+nqhNgh5OfFS33MeTD5AuDOAxfTFcppaDc=",
+        "rev": "51135582208bf54aa42de61838fc582b947f4bc7",
+        "revCount": 437,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-rs"
