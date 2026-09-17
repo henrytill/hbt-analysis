@@ -22,7 +22,7 @@ from unittest.mock import patch
 from hbt.analysis import implementations
 from hbt.analysis.commands import CommandError, conformance
 from hbt.analysis.commands.conformance import Options, run
-from hbt.analysis.implementations import ImplementationError, Selection, corpus_root
+from hbt.analysis.implementations import WAIVERS_FILE, ImplementationError, Selection, corpus_root
 from hbt.conformance import CorpusError
 
 DOCUMENT = """version: 0.1.0
@@ -116,6 +116,24 @@ class Run(unittest.TestCase):
         status, output = self.run_matrix(binary=self.binaries(), corpus=self.corpus, waivers=(f"hbt-y={waivers}",))
         self.assertEqual(status, 0)
         self.assertRegex(output, r"markdown/a\s+PASS\s+XFAIL")
+
+    def test_an_implementations_own_waivers_file_is_found(self) -> None:
+        """The matrix waives what the implementation's own conformance run waives."""
+        (self.root / "hbt-y").mkdir()
+        (self.root / "hbt-y" / WAIVERS_FILE).write_text("markdown/a # hbt-y#1\n", encoding="utf-8")
+        status, output = self.run_matrix(binary=self.binaries(), corpus=self.corpus)
+        self.assertEqual(status, 0)
+        self.assertRegex(output, r"markdown/a\s+PASS\s+XFAIL")
+
+    def test_an_override_replaces_the_discovered_file(self) -> None:
+        """--waivers is for a binary that is not the submodule's."""
+        (self.root / "hbt-y").mkdir()
+        (self.root / "hbt-y" / WAIVERS_FILE).write_text("markdown/a # hbt-y#1\n", encoding="utf-8")
+        empty = self.root / "empty"
+        empty.write_text("", encoding="utf-8")
+        status, output = self.run_matrix(binary=self.binaries(), corpus=self.corpus, waivers=(f"hbt-y={empty}",))
+        self.assertEqual(status, 1)
+        self.assertRegex(output, r"markdown/a\s+PASS\s+FAIL")
 
     def test_a_stale_waiver_fails_the_run(self) -> None:
         waivers = self.root / "waivers"

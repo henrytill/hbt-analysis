@@ -28,6 +28,7 @@ import click
 
 from hbt.analysis.commands import CommandError, invoke, selection_options
 from hbt.analysis.implementations import (
+    WAIVERS_FILE,
     Impl,
     ImplementationError,
     Selection,
@@ -36,6 +37,7 @@ from hbt.analysis.implementations import (
     discover,
     parse_pairs,
     repo_root,
+    waivers_file,
 )
 from hbt.conformance import Corpus, CorpusError, Fixture, Outcome, Result, Run
 from hbt.conformance import __version__ as harness_version
@@ -203,13 +205,20 @@ def _totals(columns: Sequence[Column], out: TextIO) -> None:
             print(f"warning: {c.impl.name} waives unknown fixture {name}", file=out)
 
 
-def _waiver_files(specs: tuple[str, ...], known: list[str]) -> dict[str, Path]:
-    """Each implementation's waivers file, checked to exist before anything runs."""
-    files = {n: Path(v) for n, v in parse_pairs(specs, "--waivers", "NAME=FILE", known).items()}
-    for path in files.values():
+def _waiver_files(root: Path, specs: tuple[str, ...], known: list[str]) -> dict[str, Path]:
+    """Each implementation's waivers file: the one it carries, unless --waivers replaces it.
+
+    Found by convention, so the matrix waives what each implementation's own
+    conformance run waives without being told.  An override is for checking a
+    binary that is not the submodule's, and is checked to exist before anything
+    runs; a discovered file needs no such check, having been found by existing.
+    """
+    files = {name: path for name in known if (path := waivers_file(root, name)) is not None}
+    overrides = {n: Path(v) for n, v in parse_pairs(specs, "--waivers", "NAME=FILE", known).items()}
+    for path in overrides.values():
         if not path.is_file():
             raise CommandError(f"--waivers: no such file {path}")
-    return files
+    return files | overrides
 
 
 def _list(corpora: Mapping[str, Corpus | str], fixtures: Sequence[str], out: TextIO) -> None:
@@ -225,7 +234,7 @@ def run(selection: Selection, options: Options, out: TextIO) -> int:
     """Check the selected implementations; 0 if every one of them conformed."""
     root = repo_root()
     known, names, overrides, revisions = choose(root, selection)
-    waivers = _waiver_files(options.waivers, known)
+    waivers = _waiver_files(root, options.waivers, known)
 
     corpora = locate(root, names, options.corpus)
     patterns = list(options.patterns)
@@ -260,7 +269,7 @@ def run(selection: Selection, options: Options, out: TextIO) -> int:
     "--waivers",
     multiple=True,
     metavar="NAME=FILE",
-    help="fixtures NAME is expected to fail, one per line (repeatable)",
+    help=f"fixtures NAME is expected to fail, instead of its own {WAIVERS_FILE} (repeatable)",
 )
 @click.option(
     "--corpus",
