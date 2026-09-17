@@ -202,6 +202,29 @@
     "hbt-data_3": {
       "inputs": {
         "flake-utils": [
+          "hbt-ocaml",
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "hbt-ocaml",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "path": "./test/data",
+        "type": "path"
+      },
+      "original": {
+        "path": "./test/data",
+        "type": "path"
+      },
+      "parent": [
+        "hbt-ocaml"
+      ]
+    },
+    "hbt-data_4": {
+      "inputs": {
+        "flake-utils": [
           "hbt-rs",
           "flake-utils"
         ],
@@ -271,15 +294,16 @@
           "opam-nix",
           "flake-utils"
         ],
+        "hbt-data": "hbt-data_3",
         "nixpkgs": "nixpkgs_3",
         "opam-nix": "opam-nix",
         "opam-repository": "opam-repository"
       },
       "locked": {
-        "lastModified": 1788895974,
-        "narHash": "sha256-76BRKWbFutnhH+3i9Gp+y3Mod72GNeFJn+Wb5KCvrqU=",
-        "rev": "0d1df9f4143008bfb6d663e34c4d8974f33d212f",
-        "revCount": 538,
+        "lastModified": 1789618654,
+        "narHash": "sha256-N5mpKllZR8DRWzFY0Uby5WA7Cg14O3jxSu2j+ZLgjMY=",
+        "rev": "d1964a6867cbbf5f248fecb5225f5e4e6f7c7ca2",
+        "revCount": 546,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-ocaml"
@@ -293,7 +317,7 @@
       "inputs": {
         "crane": "crane",
         "flake-utils": "flake-utils_5",
-        "hbt-data": "hbt-data_3",
+        "hbt-data": "hbt-data_4",
         "nixpkgs": "nixpkgs_4",
         "rust-overlay": "rust-overlay"
       },
