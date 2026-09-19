@@ -275,10 +275,10 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1789674654,
-        "narHash": "sha256-2sCxEiixCA96NXoUBHIA3yIMCkA+9vvhwIj5B4KhXmQ=",
-        "rev": "32bcde0bbed018e8a3c2069e838194632c735762",
-        "revCount": 273,
+        "lastModified": 1789789875,
+        "narHash": "sha256-6iGMLpro6Apt6sgU74cJdF9mF5Tm3/24lO9tM/fNDZM=",
+        "rev": "21ebc53fcb280fdf778303599da45e03babb1591",
+        "revCount": 291,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-go"
@@ -298,10 +298,11 @@
         "uri-bytestring-src": "uri-bytestring-src"
       },
       "locked": {
-        "lastModified": 1789674860,
-        "narHash": "sha256-p7eg1La8gwNLGhsnhCzKU69f91yms4ATgWZ4co5Yd7k=",
-        "rev": "766223a01823a5a30bdf1f04af31cff53a753b67",
-        "revCount": 484,
+        "lastModified": 1789770150,
+        "narHash": "sha256-s6pycZ/zz5JUDNUFeXESgPiirgT5ln0ke/T/f9DMC5A=",
+        "ref": "refs/heads/master",
+        "rev": "7e262887fc92984c57978880e9c1e6f5ce90bab7",
+        "revCount": 503,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-hs"
@@ -324,10 +325,11 @@
         "opam-repository": "opam-repository"
       },
       "locked": {
-        "lastModified": 1789674807,
-        "narHash": "sha256-lyFYePqluc3QbH939Z+T2gTvD1xb0tPmKoiCggPb96k=",
-        "rev": "ae8d935be62e60ebd2b2a48742b1ca2da52e0cde",
-        "revCount": 548,
+        "lastModified": 1789779056,
+        "narHash": "sha256-ZX0/hDFyWIoVgainD+i2LA9UNXvr13RHoo8eaQhbI3M=",
+        "ref": "refs/heads/master",
+        "rev": "b1e4062c59b02505fbbc562452c2abe0280f1d2d",
+        "revCount": 565,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-ocaml"
@@ -346,10 +348,11 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1789674605,
-        "narHash": "sha256-QjVcz6nXoy8XZNisYu7Im2i3iwrfuMeq4pPTn0Z5fW4=",
-        "rev": "557d765b7e672202a51a972b233910903ae35a19",
-        "revCount": 439,
+        "lastModified": 1789774205,
+        "narHash": "sha256-G6JtEq5z8JBkdXBqPe9ocEfbA2Qngipm5oMU3GSo9TU=",
+        "ref": "refs/heads/master",
+        "rev": "7e16a14329a590b0d3ac35d92ed88cc47862cf47",
+        "revCount": 459,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-rs"
