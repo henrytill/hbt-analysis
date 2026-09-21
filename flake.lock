@@ -225,6 +225,29 @@
     "hbt-data_4": {
       "inputs": {
         "flake-utils": [
+          "hbt-js",
+          "utils"
+        ],
+        "nixpkgs": [
+          "hbt-js",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "path": "./test/data",
+        "type": "path"
+      },
+      "original": {
+        "path": "./test/data",
+        "type": "path"
+      },
+      "parent": [
+        "hbt-js"
+      ]
+    },
+    "hbt-data_5": {
+      "inputs": {
+        "flake-utils": [
           "hbt-ocaml",
           "flake-utils"
         ],
@@ -245,7 +268,7 @@
         "hbt-ocaml"
       ]
     },
-    "hbt-data_5": {
+    "hbt-data_6": {
       "inputs": {
         "flake-utils": [
           "hbt-rs",
@@ -315,15 +338,17 @@
     },
     "hbt-js": {
       "inputs": {
+        "hbt-data": "hbt-data_4",
         "nixpkgs": "nixpkgs_3",
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1790030379,
-        "narHash": "sha256-nrQwxpLTXQ1sCPNU9neu/2dcGaVdCbEGzzRNvHyKfrw=",
+        "lastModified": 1790031818,
+        "narHash": "sha256-jbWQbOg4QbDH8Vf5dfbC1M3vxwRmdkGNeiAVxE3/OVc=",
         "ref": "refs/heads/master",
-        "rev": "be84de7a07b711eb65d17de91db6db366fadc525",
-        "revCount": 4,
+        "rev": "cceb686f494e1a2aef7a7fdde11b26210c24aa9a",
+        "revCount": 5,
+        "submodules": true,
         "type": "git",
         "url": "file:./hbt-js"
       },
@@ -339,7 +364,7 @@
           "opam-nix",
           "flake-utils"
         ],
-        "hbt-data": "hbt-data_4",
+        "hbt-data": "hbt-data_5",
         "nixpkgs": "nixpkgs_4",
         "opam-nix": "opam-nix",
         "opam-repository": "opam-repository"
@@ -363,7 +388,7 @@
       "inputs": {
         "crane": "crane",
         "flake-utils": "flake-utils_5",
-        "hbt-data": "hbt-data_5",
+        "hbt-data": "hbt-data_6",
         "nixpkgs": "nixpkgs_5",
         "rust-overlay": "rust-overlay"
       },

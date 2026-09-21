@@ -90,7 +90,7 @@ nix run .#conformance -- --corpus ../hbt-data                 # everyone, agains
 nix run .#conformance -- --waivers hbt-go=path/to/waivers     # instead of its own file
 ```
 
-Under `.#conformance` the binaries are the `flake.lock` revisions, while each corpus is read from the working tree's nested checkout. When the lock falls behind the gitlinks those can pair a binary with a corpus newer than the one it pins — the header shows both, and `nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs` realigns them. In the dev shell, `python -m hbt.analysis conformance` falls back to the `result-hbt-*` symlinks as `bench` does.
+Under `.#conformance` the binaries are the `flake.lock` revisions, while each corpus is read from the working tree's nested checkout. When the lock falls behind the gitlinks those can pair a binary with a corpus newer than the one it pins — the header shows both, and `nix flake update hbt-hs hbt-go hbt-js hbt-ocaml hbt-rs` realigns them. In the dev shell, `python -m hbt.analysis conformance` falls back to the `result-hbt-*` symlinks as `bench` does.
 
 The harness itself is the `hbt-data` flake input, not a fifth submodule: a fifth entry in `.gitmodules` would read as a fifth implementation to everything that derives the set from it. To see an unreleased harness change in the matrix, point the input at a checkout with `--override-input hbt-data path:../hbt-data`.
 
@@ -101,7 +101,7 @@ The four implementations are flake inputs, which is what lets `.#bench` build th
 The cost is a third layer of pinning. `flake.lock` records a rev for each implementation, on top of this repo's gitlinks and each implementation's own `hbt-data` pin. After `scripts/update-submodules.sh` moves a pointer, re-lock to match:
 
 ```sh
-nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs
+nix flake update hbt-hs hbt-go hbt-js hbt-ocaml hbt-rs
 ```
 
 `inputs.self.submodules = true` is set, so `self` is the tree *with* the submodules rather than with four empty directories. The usual cost of setting it — every submodule tree landing in `src = self` — does not apply here: the `hbt-analysis` derivation takes a `lib.fileset`-filtered source of just `hbt/analysis/`, `hbt/bench/`, `pyproject.toml`, and this README, so it stays a few tens of kilobytes rather than the size of the four submodule trees, and does not rebuild when a pointer moves.
@@ -119,4 +119,4 @@ The companion warning about not reading HEAD is benign: detaching `hbt-go` three
 | `benchmarks/` | corpus definitions, `results.json`, and the pandoc defaults for the page |
 | `scripts/` | submodule pointer maintenance (bash) |
 | `flake.nix` | `hbt-analysis`, the dev shell, `.#bench`, `.#conformance`, and `.#site` |
-| `hbt-{hs,go,ocaml,rs}/` | the implementations, as submodules |
+| `hbt-{hs,go,js,ocaml,rs}/` | the implementations, as submodules |
