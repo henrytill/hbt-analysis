@@ -119,7 +119,7 @@
     },
     "flake-utils_4": {
       "inputs": {
-        "systems": "systems_4"
+        "systems": "systems_5"
       },
       "locked": {
         "lastModified": 1731533236,
@@ -137,7 +137,7 @@
     },
     "flake-utils_5": {
       "inputs": {
-        "systems": "systems_6"
+        "systems": "systems_7"
       },
       "locked": {
         "lastModified": 1731533236,
@@ -313,6 +313,25 @@
         "url": "file:./hbt-hs"
       }
     },
+    "hbt-js": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_3",
+        "utils": "utils"
+      },
+      "locked": {
+        "lastModified": 1790030379,
+        "narHash": "sha256-nrQwxpLTXQ1sCPNU9neu/2dcGaVdCbEGzzRNvHyKfrw=",
+        "ref": "refs/heads/master",
+        "rev": "be84de7a07b711eb65d17de91db6db366fadc525",
+        "revCount": 4,
+        "type": "git",
+        "url": "file:./hbt-js"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./hbt-js"
+      }
+    },
     "hbt-ocaml": {
       "inputs": {
         "flake-utils": [
@@ -321,7 +340,7 @@
           "flake-utils"
         ],
         "hbt-data": "hbt-data_4",
-        "nixpkgs": "nixpkgs_3",
+        "nixpkgs": "nixpkgs_4",
         "opam-nix": "opam-nix",
         "opam-repository": "opam-repository"
       },
@@ -345,7 +364,7 @@
         "crane": "crane",
         "flake-utils": "flake-utils_5",
         "hbt-data": "hbt-data_5",
-        "nixpkgs": "nixpkgs_4",
+        "nixpkgs": "nixpkgs_5",
         "rust-overlay": "rust-overlay"
       },
       "locked": {
@@ -461,6 +480,22 @@
     },
     "nixpkgs_3": {
       "locked": {
+        "lastModified": 1789844176,
+        "narHash": "sha256-COQmpo4lFIzMgUjr3ntDpjH0NwrCnf7N0uhR+6WPGP8=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "79b35bf0bda5cd110f856aa5b5b2c5ba4460dbf5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_4": {
+      "locked": {
         "lastModified": 1787964612,
         "narHash": "sha256-0N9nghg3nwzX6b6qc77EzjR9cu/Z+UR66FlfsCqiURs=",
         "owner": "NixOS",
@@ -475,7 +510,7 @@
         "type": "github"
       }
     },
-    "nixpkgs_4": {
+    "nixpkgs_5": {
       "locked": {
         "lastModified": 1787964612,
         "narHash": "sha256-0N9nghg3nwzX6b6qc77EzjR9cu/Z+UR66FlfsCqiURs=",
@@ -491,7 +526,7 @@
         "type": "github"
       }
     },
-    "nixpkgs_5": {
+    "nixpkgs_6": {
       "locked": {
         "lastModified": 1788922888,
         "narHash": "sha256-QMX3uerxnW2R5dHcWpIQILHDltOZnon3x3Spq7EzBFI=",
@@ -579,7 +614,7 @@
           "opam-nix",
           "nixpkgs"
         ],
-        "systems": "systems_5"
+        "systems": "systems_6"
       },
       "locked": {
         "lastModified": 1782276984,
@@ -601,9 +636,10 @@
         "hbt-data": "hbt-data",
         "hbt-go": "hbt-go",
         "hbt-hs": "hbt-hs",
+        "hbt-js": "hbt-js",
         "hbt-ocaml": "hbt-ocaml",
         "hbt-rs": "hbt-rs",
-        "nixpkgs": "nixpkgs_5"
+        "nixpkgs": "nixpkgs_6"
       }
     },
     "rust-overlay": {
@@ -717,6 +753,21 @@
         "type": "github"
       }
     },
+    "systems_7": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
     "uri-bytestring-src": {
       "flake": false,
       "locked": {
@@ -731,6 +782,24 @@
         "owner": "Soostone",
         "ref": "0.4.0.1",
         "repo": "uri-bytestring",
+        "type": "github"
+      }
+    },
+    "utils": {
+      "inputs": {
+        "systems": "systems_4"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
         "type": "github"
       }
     }

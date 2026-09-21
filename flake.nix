@@ -46,6 +46,7 @@
     # to match -- `nix flake update hbt-hs hbt-go hbt-ocaml hbt-rs`.
     hbt-hs.url = "git+file:./hbt-hs";
     hbt-go.url = "git+file:./hbt-go";
+    hbt-js.url = "git+file:./hbt-js";
     hbt-ocaml.url = "git+file:./hbt-ocaml";
     hbt-rs.url = "git+file:./hbt-rs";
 
