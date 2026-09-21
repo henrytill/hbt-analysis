@@ -10,3 +10,6 @@
 [submodule "hbt-go"]
 	path = hbt-go
 	url = https://github.com/henrytill/hbt-go.git
+[submodule "hbt-js"]
+	path = hbt-js
+	url = https://github.com/henrytill/hbt-js.git
