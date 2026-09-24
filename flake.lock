@@ -298,11 +298,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1789867463,
-        "narHash": "sha256-9Ka6sUM0wbzmO7iaQbjin1mhjG055JMn8r4Jxqsmi9w=",
+        "lastModified": 1790286883,
+        "narHash": "sha256-YdagdcoPLQuvcnsAlakhnq6f88YgeBcBeSUWIwDLAQU=",
         "ref": "refs/heads/master",
-        "rev": "ac9490311dd645e82f30dd8457cb57b16a53adad",
-        "revCount": 296,
+        "rev": "b6d81324bbe4b28f3b19765afcba31922c0c383c",
+        "revCount": 297,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-go"
@@ -322,11 +322,11 @@
         "uri-bytestring-src": "uri-bytestring-src"
       },
       "locked": {
-        "lastModified": 1789880244,
-        "narHash": "sha256-l0NJG8Y5a+DMhy+Cz0kl0TdgcXKIZ4i8J9B0+Yss5Qo=",
+        "lastModified": 1790286910,
+        "narHash": "sha256-KjXK23N642VaCfzRldVCTYI7e/PMHtQgvW+k+itohws=",
         "ref": "refs/heads/master",
-        "rev": "024097ef74ce08ea70bc7a21e1697f0ee533165b",
-        "revCount": 508,
+        "rev": "9a8237a21afc40292e1a4392b4d49b72e796f319",
+        "revCount": 509,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-hs"
@@ -343,11 +343,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1790031818,
-        "narHash": "sha256-jbWQbOg4QbDH8Vf5dfbC1M3vxwRmdkGNeiAVxE3/OVc=",
+        "lastModified": 1790216825,
+        "narHash": "sha256-CfesdnMk2wi5KinV9s8XgK7zEGe4iVxwexn+MlUw+9E=",
         "ref": "refs/heads/master",
-        "rev": "cceb686f494e1a2aef7a7fdde11b26210c24aa9a",
-        "revCount": 5,
+        "rev": "716c09b1b3cd8343dc57adb8704f610f13a7ef5c",
+        "revCount": 68,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-js"
@@ -370,11 +370,11 @@
         "opam-repository": "opam-repository"
       },
       "locked": {
-        "lastModified": 1789867688,
-        "narHash": "sha256-n8gRHPIm5xsMNlWOEkzFb4SNyj0t8QfjMss6dNYY6Sk=",
+        "lastModified": 1790286942,
+        "narHash": "sha256-q6qqZiVvBNeQSNQwBJFdEG5aa05MWdontmkK2AhAZDQ=",
         "ref": "refs/heads/master",
-        "rev": "bee8cd79e9a79651c3e937de8247752d76779b71",
-        "revCount": 568,
+        "rev": "bb5b5269b0a37bad6c28ab6c2c91c1926d3ba87a",
+        "revCount": 572,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-ocaml"
@@ -393,11 +393,11 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1789867551,
-        "narHash": "sha256-BQjYSD/zFraMLpbh4uOiUm5KsBmfZTg9W0hTBEDeBQU=",
+        "lastModified": 1790286957,
+        "narHash": "sha256-Ko/rnKRRQEsql0OFsrRmAlrcl9GiJ7Bg/d86tqAyDns=",
         "ref": "refs/heads/master",
-        "rev": "e443c6e8c17ec47bae7963147e32eeed51df2f77",
-        "revCount": 464,
+        "rev": "2b420aeee47989b0fe3d2beb0ff5189d1686248b",
+        "revCount": 465,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-rs"
