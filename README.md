@@ -103,7 +103,7 @@ nix run .#fuzz — --impl hbt-hs --impl hbt-go --impl hbt-ocaml --impl hbt-rs
 
 Conformance can only find a disagreement someone already thought to pin. `hbt-analysis fuzz` generates documents instead, runs every selected implementation over each, and reports where they do not all read a document the same way — the raw material for the next fixture. No implementation is the reference: a report says who disagrees with whom, and settling which side is right is hbt-data's business. Agreement is `hbt.conformance`'s own comparison, and any two failures agree, since the implementations word their errors differently.
 
-The documents come from [Hypothesis](https://hypothesis.readthedocs.io/) strategies in `hbt/analysis/generators.py`, built from the constructs the implementations have been seen to treat differently, and Hypothesis shrinks each disagreement to the simplest document that still shows it. A disagreement is reported as its independent parts — *these implementations fail with this message*, *this field splits them this way* — so a document that differs in a label and in a name is two reports, each shrunk on its own, rather than a third kind of its own. The search runs in rounds: each stops at its first new find and shrinks it, passing what earlier rounds found, until a round gets through `-n` documents (200 by default) without anything new. One find a round rather than Hypothesis's own multiple-bug reporting, which keeps searching on a wall-clock timer and so would not repeat from a seed. It exits non-zero if anything was found.
+The documents come from [Hypothesis](https://hypothesis.readthedocs.io/) strategies in `hbt/analysis/generators.py`, built from the constructs the implementations have been seen to treat differently, and Hypothesis shrinks each disagreement to the simplest document that still shows it. A disagreement is reported as its independent parts — *these implementations fail with this message*, *this field splits them this way* — so a document that differs in a label and in a name is two reports, each shrunk on its own, rather than a third kind of its own. The search runs in rounds, one part to a round: a round's first new part becomes its target, and only documents showing that part count as failures while it shrinks, so shrinking cannot slide from one disagreement to another. The search ends when a round gets through `-n` documents (200 by default) without anything new. It exits non-zero if anything was found.
 
 ```sh
 nix run .#fuzz — --seed 1234                  # reproduce a run; the seed is always printed
@@ -111,7 +111,7 @@ nix run .#fuzz — --keep found/                # write each shrunk input, ready
 nix run .#fuzz — --no-shrink -n 50            # a quick look
 ```
 
-A seed reproduces a run. Only `--format markdown` exists so far; a format is a strategy and a file extension in `GENERATORS`. hbt-js's CLI is still a stub, so it fails every document and shows up as one disagreement of its own; leave it out with `--impl` until it can parse.
+A seed reproduces a run, unless a document takes longer than `--timeout` on one machine and not another, or shrinking one find reaches Hypothesis's five-minute limit. Only `--format markdown` exists so far; a format is a strategy and a file extension in `GENERATORS`. hbt-js's CLI is still a stub, so it fails every document and shows up as one disagreement of its own; leave it out with `--impl` until it can parse.
 
 ## The root flake
 

@@ -104,12 +104,30 @@ item = st.tuples(
 )
 
 
-def _list(items: Sequence[tuple[int, str, str]]) -> list[str]:
-    return [f"{'  ' * depth}{marker} {body}" for depth, marker, body in items]
+def _list(offset: int, items: Sequence[tuple[int, str, str]]) -> list[str]:
+    """A list whose nesting a CommonMark parser reads as nesting.
+
+    An item nests under the one before it by starting at that item's content
+    column, which is one past its marker -- so three spaces under `1.` and two
+    under `-` -- and it can nest only one level deeper than the item before
+    it; a jump of two would be continuation text or a code block rather than a
+    deeper list.  `offset` indents the whole list, as the corpus's
+    `indented` and `indented_double` fixtures do.
+    """
+    lines: list[str] = []
+    # The content column of the latest item at each depth.
+    columns: list[int] = []
+    for depth, marker, body in items:
+        depth = min(depth, len(columns))
+        indent = offset if depth == 0 else columns[depth - 1]
+        del columns[depth:]
+        columns.append(indent + len(marker) + 1)
+        lines.append(f"{' ' * indent}{marker} {body}")
+    return lines
 
 
 block = st.one_of(
-    st.lists(item, min_size=1, max_size=6).map(_list),
+    st.builds(_list, st.sampled_from((0, 2, 4)), st.lists(item, min_size=1, max_size=6)),
     st.builds(_heading, st.integers(min_value=2, max_value=5), text),
     link.map(lambda s: [s]),
     link.map(lambda s: [f"> {s}"]),
