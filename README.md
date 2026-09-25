@@ -6,14 +6,15 @@ This README used to be an org-babel notebook: one `#+begin_src sh` block per imp
 
 ## The command line
 
-`hbt-analysis` is one executable with a command per job, because every job here runs over the same four implementations: `bench` times them, and `conformance` holds them to the corpus. Both take the same three options for choosing what they run over — `--impl NAME` to limit the set, `--binary NAME=PATH` to use a particular build, `--revision NAME=REV` to record which build it is — after the command name, like everything else they take:
+`hbt-analysis` is one executable with a command per job, because every job here runs over the same implementations: `bench` times them, `conformance` holds them to the corpus, and `fuzz` holds them to each other. All three take the same three options for choosing what they run over — `--impl NAME` to limit the set, `--binary NAME=PATH` to use a particular build, `--revision NAME=REV` to record which build it is — after the command name, like everything else they take:
 
 ```sh
 hbt-analysis bench --impl hbt-rs --warmup 50
 hbt-analysis conformance --impl hbt-go -q
+hbt-analysis fuzz --impl hbt-rs --impl hbt-go --seed 1
 ```
 
-`nix run .#bench` and `nix run .#conformance` are those two commands with all four implementations built from the flake and passed in.
+`nix run .#bench`, `nix run .#conformance` and `nix run .#fuzz` are those commands with every implementation built from the flake and passed in.
 
 ## Benchmarking
 
@@ -94,6 +95,24 @@ Under `.#conformance` the binaries are the `flake.lock` revisions, while each co
 
 The harness itself is the `hbt-data` flake input, not a fifth submodule: a fifth entry in `.gitmodules` would read as a fifth implementation to everything that derives the set from it. To see an unreleased harness change in the matrix, point the input at a checkout with `--override-input hbt-data path:../hbt-data`.
 
+## Fuzzing
+
+```sh
+nix run .#fuzz — --impl hbt-hs --impl hbt-go --impl hbt-ocaml --impl hbt-rs
+```
+
+Conformance can only find a disagreement someone already thought to pin. `hbt-analysis fuzz` generates documents instead, runs every selected implementation over each, and reports where they do not all read a document the same way — the raw material for the next fixture. No implementation is the reference: a report says who disagrees with whom, and settling which side is right is hbt-data's business. Agreement is `hbt.conformance`'s own comparison, and any two failures agree, since the implementations word their errors differently.
+
+The documents come from [Hypothesis](https://hypothesis.readthedocs.io/) strategies in `hbt/analysis/generators.py`, built from the constructs the implementations have been seen to treat differently, and Hypothesis shrinks each disagreement to the simplest document that still shows it. A disagreement is reported as its independent parts — *these implementations fail with this message*, *this field splits them this way* — so a document that differs in a label and in a name is two reports, each shrunk on its own, rather than a third kind of its own. Hypothesis stops soon after it finds a bug, so the search runs in rounds, each passing what the earlier ones found, until a round gets through `-n` documents (200 by default) without anything new. It exits non-zero if anything was found.
+
+```sh
+nix run .#fuzz — --seed 1234                  # reproduce a run; the seed is always printed
+nix run .#fuzz — --keep found/                # write each shrunk input, ready to become a fixture
+nix run .#fuzz — --no-shrink -n 50            # a quick look
+```
+
+A seed reproduces a run as long as no round reaches Hypothesis's ten-second limit on searching after its first find, which is measured in wall-clock time. Only `--format markdown` exists so far; a format is a strategy and a file extension in `GENERATORS`. hbt-js's CLI is still a stub, so it fails every document and shows up as one disagreement of its own; leave it out with `--impl` until it can parse.
+
 ## The root flake
 
 The four implementations are flake inputs, which is what lets `.#bench` build them end to end. They are `git+file:` inputs rather than `path:`: three of the four subflakes derive their version from `self.shortRev or self.dirtyShortRev`, and a path input carries no git metadata at all, so they fail to evaluate with `attribute 'dirtyShortRev' missing`.
@@ -114,9 +133,9 @@ The companion warning about not reading HEAD is benign: detaching `hbt-go` three
 
 | Path | What |
 |---|---|
-| `hbt/analysis/` | `hbt-analysis` (Python): `cli.py` gathers the commands, `commands/bench.py` and `commands/conformance.py` are the two commands, `commands/__init__.py` is what they share, `implementations.py` finds the implementations and their binaries |
+| `hbt/analysis/` | `hbt-analysis` (Python): `cli.py` gathers the commands, `commands/bench.py`, `commands/conformance.py` and `commands/fuzz.py` are the three commands, `commands/__init__.py` is what they share, `implementations.py` finds the implementations and their binaries, `generators.py` holds the fuzzer's Hypothesis strategies |
 | `hbt/bench/` | the benchmark library `hbt-analysis bench` drives, a sibling of `hbt.conformance`: `timing.py`, `results.py`, and `report.py` with its template. `hbt` is a PEP 420 namespace portion, so it has no `__init__.py`; both packages ship in the one `hbt-analysis` distribution, built with hatchling |
 | `benchmarks/` | corpus definitions, `results.json`, and the pandoc defaults for the page |
 | `scripts/` | submodule pointer maintenance (bash) |
-| `flake.nix` | `hbt-analysis`, the dev shell, `.#bench`, `.#conformance`, and `.#site` |
+| `flake.nix` | `hbt-analysis`, the dev shell, `.#bench`, `.#conformance`, `.#fuzz`, and `.#site` |
 | `hbt-{hs,go,js,ocaml,rs}/` | the implementations, as submodules |

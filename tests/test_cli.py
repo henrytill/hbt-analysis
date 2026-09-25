@@ -24,7 +24,7 @@ from click.testing import CliRunner
 
 from hbt.analysis import implementations
 from hbt.analysis.cli import cli
-from hbt.analysis.commands import bench, conformance
+from hbt.analysis.commands import bench, conformance, fuzz
 from hbt.analysis.implementations import ImplementationError, Selection, parse_pairs
 from hbt.bench import FORMAT_VERSION
 from tests import binding
@@ -44,7 +44,7 @@ RESULTS = {
 
 # Each command's own record. Every command also takes the shared Selection,
 # which is what lets the flake's apps hand them all the same arguments.
-OPTIONS: dict[str, type[Any]] = {"bench": bench.Options, "conformance": conformance.Options}
+OPTIONS: dict[str, type[Any]] = {"bench": bench.Options, "conformance": conformance.Options, "fuzz": fuzz.Options}
 
 
 class Binding(unittest.TestCase):

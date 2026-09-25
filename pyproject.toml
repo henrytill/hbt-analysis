@@ -6,18 +6,19 @@ build-backend = "hatchling.build"
 name = "hbt-analysis"
 # The same sentence as hbt/analysis/__init__.py's docstring, which is the
 # command-line help; hatchling cannot read a description from a docstring.
-description = "Benchmark the four hbt implementations, and hold them to the conformance corpus."
+description = "Benchmark the hbt implementations, hold them to the conformance corpus, and to each other."
 dynamic = ["version"]
 readme = "README.md"
 authors = [{ name = "Henry Till", email = "henrytill@gmail.com" }]
 requires-python = ">=3.11"
 # click builds the command line, jinja2 carries the report's prose and
-# structure, tabulate renders its tables; everything else is the standard
+# structure, tabulate renders its tables, hypothesis generates and shrinks the
+# fuzz command's documents; everything else is the standard
 # library, tomllib for the corpus and json for hyperfine's export. hyperfine
 # itself is a runtime dependency, supplied by the flake. hbt-conformance is
 # henrytill/hbt-data's harness, which the conformance command imports; it is on
 # no index, so the flake supplies that too.
-dependencies = ["click>=8.1", "jinja2>=3.1.0", "tabulate>=0.9.0", "hbt-conformance"]
+dependencies = ["click>=8.1", "hypothesis>=6.100", "jinja2>=3.1.0", "tabulate>=0.9.0", "hbt-conformance"]
 
 [project.optional-dependencies]
 # types-tabulate because tabulate ships no py.typed and mypy runs strict;
