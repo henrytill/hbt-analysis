@@ -126,6 +126,7 @@
               click
               hypothesis
               jinja2
+              pyyaml
               tabulate
             ])
             ++ [ inputs.hbt-data.packages.${system}.hbt-conformance ];
@@ -261,6 +262,8 @@
                 # `inputsFrom` gives the dev shell below -- a dependency added
                 # to `dependencies` above reaches this check on its own.
                 pkgs.python3Packages.types-tabulate
+                # The same for PyYAML, whose error type the fuzz command catches.
+                pkgs.python3Packages.types-pyyaml
               ]
               ++ hbtAnalysis.propagatedBuildInputs;
             }
@@ -289,6 +292,7 @@
               isort
               mypy
               pylint
+              types-pyyaml
               types-tabulate
             ]);
         };

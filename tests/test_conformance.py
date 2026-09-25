@@ -11,7 +11,6 @@ implementation's trouble in its own column, and the exit status.
 from __future__ import annotations
 
 import io
-import stat
 import subprocess
 import tempfile
 import unittest
@@ -24,11 +23,7 @@ from hbt.analysis.commands import CommandError, conformance
 from hbt.analysis.commands.conformance import Options, run
 from hbt.analysis.implementations import WAIVERS_FILE, ImplementationError, Selection, corpus_root
 from hbt.conformance import CorpusError
-
-DOCUMENT = """version: 0.1.0
-length: 0
-value: []
-"""
+from tests.stubs import DOCUMENT, executable
 
 OTHER = """version: 0.1.0
 length: 1
@@ -89,10 +84,7 @@ class Run(unittest.TestCase):
         (corpus / "markdown" / f"{stem}.expected.yaml").write_text(DOCUMENT, encoding="utf-8")
 
     def stub(self, name: str, output: str) -> str:
-        path = self.root / name
-        path.write_text(f'#!/bin/sh\ncat <<"EOF"\n{output}EOF\n', encoding="utf-8")
-        path.chmod(path.stat().st_mode | stat.S_IXUSR)
-        return str(path)
+        return executable(self.root, name, f'cat <<"EOF"\n{output}EOF\n')
 
     def run_matrix(self, binary: tuple[str, ...] = (), **kwargs: Any) -> tuple[int, str]:
         out = io.StringIO()

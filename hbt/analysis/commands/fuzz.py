@@ -29,11 +29,14 @@ So each atom is raised as an exception type of its own, and Hypothesis, which
 tells bugs apart by the type of what they raise, keeps them apart while it
 shrinks and reports each one.
 
-Hypothesis is built to fail a test, not to survey: once it has a bug it goes on
-generating for ten seconds at most, and less if the latter half of that finds
-nothing new.  So the search runs in rounds.  Each round passes the atoms found
-so far, which sends Hypothesis after a new one, and the search ends with the
-first round that gets through its examples without one.
+Hypothesis is built to fail a test, not to survey, so the search runs in
+rounds.  Each round stops at its first atom and shrinks it, and passes the
+atoms earlier rounds found, which sends it after a new one; the search ends
+with the first round that gets through its examples without one.  One atom a
+round rather than Hypothesis's multiple-bug reporting, because that goes on
+searching for up to ten seconds of wall-clock time after the first bug, which
+with a process per implementation per document is what ends most rounds -- and
+then a seed would not repeat a run on another machine.
 """
 
 from __future__ import annotations
@@ -51,12 +54,14 @@ from pathlib import Path
 from typing import Any, TextIO
 
 import click
+import yaml
 from hypothesis import HealthCheck, Phase, Verbosity, given, seed, settings
-from hypothesis.errors import FlakyFailure
+from hypothesis.strategies import SearchStrategy
 
-from hbt.analysis.commands import CommandError, invoke, selection_options
-from hbt.analysis.generators import GENERATORS, Generator
+from hbt.analysis.commands import CommandError, invoke, print_table, selection_options
+from hbt.analysis.generators import GENERATORS
 from hbt.analysis.implementations import Impl, Selection, choose, discover, repo_root
+from hbt.conformance import NormalizationError
 from hbt.conformance.runner import FORMATS
 
 # A fuzzed document is a few dozen lines; anything slower than this is a hang.
@@ -70,8 +75,8 @@ SHOWN = 5
 # after them says nothing a report reader needs.
 STDERR = 4
 
-# The input's path as it appears in a diagnostic.
-INPUT = "<input>"
+# The name every document is written under, in a directory of its own.
+INPUT = "input"
 
 
 @dataclass(frozen=True)
@@ -90,11 +95,12 @@ class Options:
 class Failure:
     """An implementation that did not produce a Collection, and why.
 
-    `detail` is everything it wrote to stderr, with the input's path replaced,
-    so that two failures compare equal when they are the same failure of the
-    same document wherever it was written.  All of it rather than one line:
+    `detail` is everything it wrote to stderr, so that two failures compare
+    equal when they are the same failure.  All of it rather than one line:
     which line says why differs by implementation, and an environment with
-    RUST_BACKTRACE set puts a stack trace after hbt-rs's message.
+    RUST_BACKTRACE set puts a stack trace after hbt-rs's message.  Every
+    document is run as the same relative path from the same directory, so a
+    diagnostic that names it names it the same way each time.
     """
 
     reason: str
@@ -131,23 +137,27 @@ class Atom:
         return f"{self.subject} splits them {' | '.join(', '.join(g) for g in self.split)}"
 
 
-def execute(binary: Path, path: Path, timeout: float) -> Verdict:
-    """Run one implementation over one document, the way the harness runs it over a fixture."""
+def execute(binary: Path, directory: Path, name: str, timeout: float) -> Verdict:
+    """Run one implementation over the document `name` in `directory`, as the harness runs a fixture."""
     try:
-        proc = subprocess.run([str(binary), "-t", "yaml", str(path)], capture_output=True, timeout=timeout, check=False)
+        proc = subprocess.run(
+            [str(binary), "-t", "yaml", name], cwd=directory, capture_output=True, timeout=timeout, check=False
+        )
     except subprocess.TimeoutExpired:
         return Failure(f"timed out after {timeout:g}s")
     except OSError as exc:
         return Failure(f"could not run {binary}: {exc}")
     if proc.returncode != 0:
-        stderr = proc.stderr.decode("utf-8", errors="replace").replace(str(path), INPUT)
+        # UTF-8 whatever the locale says, as hbt.conformance reads output: a
+        # LANG-less C locale would otherwise decode it as ASCII.
+        stderr = proc.stderr.decode("utf-8", errors="replace")
         return Failure(f"exit {proc.returncode}", tuple(line.rstrip() for line in stderr.strip().splitlines()))
     try:
         document: dict[str, Any] = FORMATS["yaml"].parse(proc.stdout)
-    # Whatever an implementation wrote that does not read as a Collection is its
-    # failure, not the fuzzer's: a YAML error, a shape the harness refuses, and
-    # PyYAML's own recursion limit on pathological output alike.
-    except Exception as exc:  # pylint: disable=broad-exception-caught
+    # What the harness itself catches when it parses output, and PyYAML's
+    # recursion limit on pathological nesting, which is as much the
+    # implementation's doing. Anything else is a bug here, not a verdict.
+    except (NormalizationError, yaml.YAMLError, RecursionError) as exc:
         return Failure(f"the output is not a Collection: {exc}")
     return document
 
@@ -198,15 +208,8 @@ def atoms(verdicts: Mapping[str, Verdict]) -> set[Atom]:
 
 
 def split(verdicts: Mapping[str, Verdict]) -> Split:
-    """The implementations grouped by agreement: failures together, Collections by having no difference."""
-
-    def agree(a: str, b: str) -> bool:
-        x, y = verdicts[a], verdicts[b]
-        if isinstance(x, Failure) or isinstance(y, Failure):
-            return isinstance(x, Failure) and isinstance(y, Failure)
-        return not FORMATS["yaml"].diff(x, y)
-
-    return group(verdicts, agree)
+    """The implementations grouped by agreement: two agree when there is no atom between them."""
+    return group(verdicts, lambda a, b: not atoms({a: verdicts[a], b: verdicts[b]}))
 
 
 class Disagreement(Exception):
@@ -227,28 +230,38 @@ class Disagreement(Exception):
 class Trial:
     """Runs the implementations over documents, and raises what they disagree on."""
 
-    def __init__(self, impls: list[Impl], generator: Generator, timeout: float, scratch: Path) -> None:
-        self.binaries = {impl.name: impl.binary for impl in impls if impl.binary is not None}
-        self.generator = generator
+    def __init__(self, impls: list[Impl], suffix: str, timeout: float, scratch: Path) -> None:
+        # Absolute, because they run from the scratch directory: a relative
+        # --binary names a path from where the command was run.
+        self.binaries = {impl.name: impl.binary.absolute() for impl in impls if impl.binary is not None}
         self.timeout = timeout
-        self.scratch = scratch
+        self.path = scratch / (INPUT + suffix)
         self.pool = ThreadPoolExecutor(max_workers=len(self.binaries))
-        # In the order found, which is the order they are reported in.
+        # An exception type for each atom, so Hypothesis keeps them apart.
         self.kinds: dict[Atom, type[Disagreement]] = {}
         # Found in an earlier round, and so passed from now on.
         self.known: set[Atom] = set()
+        # By text, because many of Hypothesis's choices build the same
+        # document -- shrinking most of all -- and running the implementations
+        # is nearly all of the cost. The price is that Hypothesis's replay of a
+        # find reads this rather than running them again, so it no longer
+        # notices an implementation that answers one document two ways.
+        self.cache: dict[str, dict[str, Verdict]] = {}
 
     def judge(self, text: str) -> dict[str, Verdict]:
-        """What each implementation makes of `text`, run side by side."""
-        fd, name = tempfile.mkstemp(suffix=self.generator.suffix, dir=self.scratch)
-        path = Path(name)
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                f.write(text)
-            futures = {impl: self.pool.submit(execute, b, path, self.timeout) for impl, b in self.binaries.items()}
-            return {impl: future.result() for impl, future in futures.items()}
-        finally:
-            path.unlink()
+        """What each implementation makes of `text`, run side by side.
+
+        Always the same file, which is safe because Hypothesis runs one
+        document at a time.
+        """
+        if text not in self.cache:
+            self.path.write_text(text, encoding="utf-8")
+            futures = {
+                impl: self.pool.submit(execute, binary, self.path.parent, self.path.name, self.timeout)
+                for impl, binary in self.binaries.items()
+            }
+            self.cache[text] = {impl: future.result() for impl, future in futures.items()}
+        return self.cache[text]
 
     def check(self, text: str) -> None:
         """Raise a :class:`Disagreement` for the least atom of this document not already known.
@@ -266,20 +279,17 @@ class Trial:
         raise self.kinds[atom](text, verdicts, atom)
 
 
-def search(trial: Trial, options: Options, seed_value: int) -> list[Disagreement]:
-    """Every atom found, each with its shrunk document, round by round."""
+def search(trial: Trial, strategy: SearchStrategy[str], options: Options, seed_value: int) -> list[Disagreement]:
+    """Every atom found, each with its shrunk document, in the order found."""
     found: list[Disagreement] = []
-    for number in itertools.count():
-        new = search_round(trial, options, f"{seed_value}/{number}")
-        if not new:
-            return found
-        found.extend(new)
-        trial.known.update(d.atom for d in new)
-    raise AssertionError("unreachable")
+    while (new := search_round(trial, strategy, options, f"{seed_value}/{len(found)}")) is not None:
+        found.append(new)
+        trial.known.add(new.atom)
+    return found
 
 
-def search_round(trial: Trial, options: Options, seed_value: str) -> list[Disagreement]:
-    """The atoms one Hypothesis run finds, each with its shrunk document.
+def search_round(trial: Trial, strategy: SearchStrategy[str], options: Options, seed_value: str) -> Disagreement | None:
+    """The first new atom one Hypothesis run finds, with its shrunk document.
 
     Quiet, with no example database and no deadline: the report is this
     command's to print; a database would replay one run's finds into the next,
@@ -297,33 +307,19 @@ def search_round(trial: Trial, options: Options, seed_value: str) -> list[Disagr
         phases=phases,
         verbosity=Verbosity.quiet,
         print_blob=False,
-        report_multiple_bugs=True,
+        report_multiple_bugs=False,
         suppress_health_check=[HealthCheck.too_slow],
     )
-    @given(trial.generator.strategy)
+    @given(strategy)
     def probe(text: str) -> None:
         trial.check(text)
 
     try:
         # Hypothesis supplies `text`; pylint reads the undecorated signature.
         probe()  # pylint: disable=no-value-for-parameter
-    except FlakyFailure as exc:
-        raise CommandError(f"an implementation answered one document two ways: {exc}") from exc
     except Disagreement as exc:
-        return [exc]
-    except BaseExceptionGroup as exc:
-        found, rest = exc.split(Disagreement)
-        if rest is not None:
-            raise rest from None
-        return [] if found is None else _flatten(found)
-    return []
-
-
-def _flatten(exc: BaseExceptionGroup[Disagreement]) -> list[Disagreement]:
-    found: list[Disagreement] = []
-    for inner in exc.exceptions:
-        found.extend(_flatten(inner) if isinstance(inner, BaseExceptionGroup) else [inner])
-    return found
+        return exc
+    return None
 
 
 def _describe(verdict: Verdict) -> list[str]:
@@ -340,13 +336,15 @@ def _header(seed_value: int, options: Options, impls: list[Impl], out: TextIO) -
     print(f"format    {options.format}", file=out)
     print(f"examples  {options.examples} per round", file=out)
     print(file=out)
-    width = max(len(impl.name) for impl in impls)
-    for impl in impls:
-        if impl.binary is None:
-            print(f"{impl.name.ljust(width)}  unavailable: {impl.error}", file=out)
-            continue
-        build = (impl.revision or "")[:7] or impl.version or "-"
-        print(f"{impl.name.ljust(width)}  {impl.binary}  {build}", file=out)
+    rows = [
+        (
+            (impl.name, f"unavailable: {impl.error}", "")
+            if impl.binary is None
+            else (impl.name, str(impl.binary), impl.build or "-")
+        )
+        for impl in impls
+    ]
+    print_table(rows, out)
 
 
 def _report(index: int, found: Disagreement, out: TextIO) -> None:
@@ -394,15 +392,12 @@ def run(selection: Selection, options: Options, out: TextIO) -> int:
     _header(seed_value, options, impls, out)
 
     with tempfile.TemporaryDirectory(prefix="hbt-fuzz-") as scratch:
-        trial = Trial(impls, generator, options.timeout, Path(scratch))
+        trial = Trial(impls, generator.suffix, options.timeout, Path(scratch))
         try:
-            found = search(trial, options, seed_value)
+            found = search(trial, generator.strategy, options, seed_value)
         finally:
             trial.pool.shutdown()
 
-    # Reported in the order first found, which a seeded run repeats.
-    order = list(trial.kinds)
-    found.sort(key=lambda d: order.index(d.atom))
     for index, disagreement in enumerate(found, start=1):
         _report(index, disagreement, out)
     if options.keep is not None:

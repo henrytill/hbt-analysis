@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Sequence, TextIO, TypeVar
 
 import click
 
@@ -88,3 +88,20 @@ def invoke(ctx: click.Context, command: Callable[[], int]) -> None:
         # Click's own handler would abort with 1; a benchmark is long enough
         # that being interrupted is ordinary, and 130 says which signal did it.
         ctx.exit(130)
+
+
+def widths(rows: Sequence[Sequence[str]]) -> list[int]:
+    """Each column's width: its longest cell."""
+    return [max(map(len, column)) for column in zip(*rows)]
+
+
+def line(cells: Sequence[str], sizes: Sequence[int]) -> str:
+    """One row, each cell padded to its column's width and two spaces between."""
+    return "  ".join(cell.ljust(size) for cell, size in zip(cells, sizes)).rstrip()
+
+
+def print_table(rows: Sequence[Sequence[str]], out: TextIO) -> None:
+    """Rows as aligned columns, the way every command's header lays out the implementations."""
+    sizes = widths(rows)
+    for row in rows:
+        print(line(row, sizes), file=out)
