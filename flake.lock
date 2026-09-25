@@ -343,11 +343,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1790216825,
-        "narHash": "sha256-CfesdnMk2wi5KinV9s8XgK7zEGe4iVxwexn+MlUw+9E=",
+        "lastModified": 1790300733,
+        "narHash": "sha256-5MYms8RsNOlZAZW/PWH3JecQyu5RQtBkUkB7FDTwdCo=",
         "ref": "refs/heads/master",
-        "rev": "716c09b1b3cd8343dc57adb8704f610f13a7ef5c",
-        "revCount": 68,
+        "rev": "501059bd64ddd81c5597ea485bca69f89183b4b5",
+        "revCount": 78,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-js"
