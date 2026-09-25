@@ -20,8 +20,9 @@ from unittest.mock import patch
 
 from hbt.analysis import implementations
 from hbt.analysis.commands import CommandError, fuzz
-from hbt.analysis.commands.fuzz import Atom, Disagreement, Failure, Options, Trial, Verdict, atoms, run
-from hbt.analysis.implementations import Impl, Selection
+from hbt.analysis.commands.fuzz import Options, run
+from hbt.analysis.implementations import Selection
+from hbt.fuzz import Atom, Disagreement, Failure, Trial, Verdict, atoms
 from tests.stubs import DOCUMENT, executable
 
 
@@ -63,7 +64,7 @@ class Target(unittest.TestCase):
 
     def setUp(self) -> None:
         scratch = Path(self.enterContext(tempfile.TemporaryDirectory()))
-        self.trial = Trial([Impl("a", Path("never-run"))], ".md", 1.0, scratch)
+        self.trial = Trial({"a": Path("never-run")}, ".md", 1.0, scratch)
         self.email: dict[str, Verdict] = {"a": _collection(), "b": Failure("exit 1", ("missing URL",))}
         self.undated: dict[str, Verdict] = {"a": _collection(), "b": Failure("exit 1", ("missing date",))}
         judged = {"email": self.email, "undated": self.undated, "both": self.email, "agreed": {"a": _collection()}}

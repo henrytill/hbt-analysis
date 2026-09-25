@@ -137,7 +137,7 @@
           doCheck = false;
           # Just the packages, not the whole tree: keeps the four submodule trees
           # that self.submodules pulls in out of the derivation, and stops
-          # AGENTS.md edits from triggering a rebuild. The two packages by name
+          # AGENTS.md edits from triggering a rebuild. The three packages by name
           # rather than `./hbt`, so that another member of the namespace does not
           # become a source input of this one.
           src = pkgs.lib.fileset.toSource {
@@ -145,6 +145,7 @@
             fileset = pkgs.lib.fileset.unions [
               ./hbt/analysis
               ./hbt/bench
+              ./hbt/fuzz
               ./pyproject.toml
               ./README.md
             ];
@@ -244,11 +245,12 @@
         #
         # The source itself does have to be copied: explicit_package_bases makes
         # the working directory the package root, so the trees have to sit at
-        # `hbt/analysis` and `hbt/bench` for the modules to be `hbt.analysis`
-        # and `hbt.bench`, and a store path's basename is a hash. Copying the
-        # two packages rather than ./hbt for the same reason `src` above does:
-        # this check carries this distribution's dependency set, and another
-        # member of the namespace would bring its own.
+        # `hbt/analysis`, `hbt/bench` and `hbt/fuzz` for the modules to be
+        # `hbt.analysis`, `hbt.bench` and `hbt.fuzz`, and a store path's
+        # basename is a hash. Copying the three packages rather than ./hbt for
+        # the same reason `src` above does: this check carries this
+        # distribution's dependency set, and another member of the namespace
+        # would bring its own.
         checks.mypy =
           pkgs.runCommand "hbt-analysis-mypy"
             {
@@ -262,7 +264,7 @@
                 # `inputsFrom` gives the dev shell below -- a dependency added
                 # to `dependencies` above reaches this check on its own.
                 pkgs.python3Packages.types-tabulate
-                # The same for PyYAML, whose error type the fuzz command catches.
+                # The same for PyYAML, whose error type hbt.fuzz catches.
                 pkgs.python3Packages.types-pyyaml
               ]
               ++ hbtAnalysis.propagatedBuildInputs;
@@ -271,8 +273,9 @@
               mkdir hbt
               cp -r ${./hbt/analysis} hbt/analysis
               cp -r ${./hbt/bench} hbt/bench
+              cp -r ${./hbt/fuzz} hbt/fuzz
               cp -r ${./tests} tests
-              mypy --config-file ${./pyproject.toml} hbt/analysis hbt/bench tests
+              mypy --config-file ${./pyproject.toml} hbt/analysis hbt/bench hbt/fuzz tests
               touch $out
             '';
 
