@@ -22,21 +22,24 @@ it one, every combination of independent disagreements would be a kind of its
 own, and there would be two to the power of their number.
 
 The documents come from Hypothesis, which also shrinks each disagreement to the
-simplest document that shows it.  "Shows it" has to mean *the same* atom:
-deleting a date heading turns most disagreements into the one about undated
-links, and a shrunk input would then show a different bug from the one found.
-So each atom is raised as an exception type of its own, and Hypothesis, which
-tells bugs apart by the type of what they raise, keeps them apart while it
-shrinks and reports each one.
+simplest document that shows it.  Hypothesis is built to fail a test, not to
+survey, so the search runs in rounds, one atom to a round.  A round's first new
+atom becomes its target, and from then on only a document showing that atom
+fails; every other atom passes, the ones earlier rounds found and any new one
+alike.  The search ends with the first round that gets through its examples
+without a new atom.
 
-Hypothesis is built to fail a test, not to survey, so the search runs in
-rounds.  Each round stops at its first atom and shrinks it, and passes the
-atoms earlier rounds found, which sends it after a new one; the search ends
-with the first round that gets through its examples without one.  One atom a
-round rather than Hypothesis's multiple-bug reporting, because that goes on
-searching for up to ten seconds of wall-clock time after the first bug, which
-with a process per implementation per document is what ends most rounds -- and
-then a seed would not repeat a run on another machine.
+Both halves of that are load-bearing.  Hypothesis shrinks toward any failure
+at all when it reports one bug -- a "slip", in its own source's word -- and
+deleting a date heading turns most disagreements into the one about undated
+links, so without a single target a round would report a different atom from
+the one it found, and the one it found might never be reported.  And one bug a
+round, rather than Hypothesis's multiple-bug reporting, because that searches
+on for up to ten seconds of wall-clock time after its first bug, so a seed
+would not repeat a run on another machine.  A seed still depends on the clock
+in two places Hypothesis and this command both keep: a document that takes
+longer than `--timeout` on one machine and not another, and Hypothesis's
+five-minute limit on shrinking one find.
 """
 
 from __future__ import annotations
@@ -213,12 +216,7 @@ def split(verdicts: Mapping[str, Verdict]) -> Split:
 
 
 class Disagreement(Exception):
-    """A document showing an atom not found before.
-
-    Raised from inside the Hypothesis test, never subclassed by hand: each atom
-    gets a subclass of its own, made by :class:`Trial`, which is what keeps
-    Hypothesis from shrinking one disagreement into another.
-    """
+    """A document showing the atom a round is after."""
 
     def __init__(self, text: str, verdicts: dict[str, Verdict], atom: Atom) -> None:
         super().__init__(atom.describe())
@@ -237,10 +235,10 @@ class Trial:
         self.timeout = timeout
         self.path = scratch / (INPUT + suffix)
         self.pool = ThreadPoolExecutor(max_workers=len(self.binaries))
-        # An exception type for each atom, so Hypothesis keeps them apart.
-        self.kinds: dict[Atom, type[Disagreement]] = {}
         # Found in an earlier round, and so passed from now on.
         self.known: set[Atom] = set()
+        # The atom this round is after, once it has found one.
+        self.target: Atom | None = None
         # By text, because many of Hypothesis's choices build the same
         # document -- shrinking most of all -- and running the implementations
         # is nearly all of the cost. The price is that Hypothesis's replay of a
@@ -264,19 +262,20 @@ class Trial:
         return self.cache[text]
 
     def check(self, text: str) -> None:
-        """Raise a :class:`Disagreement` for the least atom of this document not already known.
+        """Raise a :class:`Disagreement` if this document shows the round's target atom.
 
-        The least rather than any, so that one document always raises the
-        same kind, which Hypothesis's shrinking depends on.
+        Until the round has a target, its first document with a new atom sets
+        it, to the least of them, so that one document always picks the same.
         """
         verdicts = self.judge(text)
-        new = sorted(atoms(verdicts) - self.known)
-        if not new:
-            return
-        atom = new[0]
-        if atom not in self.kinds:
-            self.kinds[atom] = type(f"Disagreement{len(self.kinds) + 1}", (Disagreement,), {})
-        raise self.kinds[atom](text, verdicts, atom)
+        found = atoms(verdicts)
+        if self.target is None:
+            new = sorted(found - self.known)
+            if not new:
+                return
+            self.target = new[0]
+        if self.target in found:
+            raise Disagreement(text, verdicts, self.target)
 
 
 def search(trial: Trial, strategy: SearchStrategy[str], options: Options, seed_value: int) -> list[Disagreement]:
@@ -285,6 +284,7 @@ def search(trial: Trial, strategy: SearchStrategy[str], options: Options, seed_v
     while (new := search_round(trial, strategy, options, f"{seed_value}/{len(found)}")) is not None:
         found.append(new)
         trial.known.add(new.atom)
+        trial.target = None
     return found
 
 
@@ -347,6 +347,23 @@ def _header(seed_value: int, options: Options, impls: list[Impl], out: TextIO) -
     print_table(rows, out)
 
 
+def _differences(succeeded: list[tuple[str, dict[str, Any]]], out: TextIO) -> None:
+    """How each group with a Collection differs from the first such group.
+
+    The first to succeed rather than the first group: when that one failed
+    there would be nothing to compare the rest with.
+    """
+    for name, verdict in succeeded[1:]:
+        first, reference = succeeded[0]
+        print(f"  {name} against {first}:", file=out)
+        differences = FORMATS["yaml"].diff(reference, verdict)
+        for difference in differences[:SHOWN]:
+            for line in difference.render().splitlines():
+                print(f"      {line}", file=out)
+        if len(differences) > SHOWN:
+            print(f"      ... and {len(differences) - SHOWN} more", file=out)
+
+
 def _report(index: int, found: Disagreement, out: TextIO) -> None:
     """One atom, with the simplest document that shows it and everything else that document shows."""
     groups = split(found.verdicts)
@@ -358,17 +375,7 @@ def _report(index: int, found: Disagreement, out: TextIO) -> None:
         print(f"  {', '.join(members)}: {head}", file=out)
         for line in rest:
             print(f"    {line}", file=out)
-    reference = representatives[0]
-    for members, verdict in zip(groups[1:], representatives[1:]):
-        if isinstance(reference, Failure) or isinstance(verdict, Failure):
-            continue
-        print(f"  {members[0]} against {groups[0][0]}:", file=out)
-        differences = FORMATS["yaml"].diff(reference, verdict)
-        for difference in differences[:SHOWN]:
-            for line in difference.render().splitlines():
-                print(f"      {line}", file=out)
-        if len(differences) > SHOWN:
-            print(f"      ... and {len(differences) - SHOWN} more", file=out)
+    _differences([(m[0], v) for m, v in zip(groups, representatives) if not isinstance(v, Failure)], out)
     print("  input:", file=out)
     for line in found.text.splitlines() or [""]:
         print(f"    | {line}".rstrip(), file=out)

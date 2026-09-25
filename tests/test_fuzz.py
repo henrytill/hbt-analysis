@@ -3,7 +3,7 @@
 Generating and shrinking are Hypothesis's, and comparing two Collections is
 hbt.conformance's; both are tested where they live.  What is tested here is
 what this module adds: taking a disagreement apart into atoms, keeping each
-atom its own through shrinking, and the report and exit status.
+round on one atom through shrinking, and the report and exit status.
 """
 
 # Each test's name is its description; a docstring would restate it.
@@ -20,8 +20,8 @@ from unittest.mock import patch
 
 from hbt.analysis import implementations
 from hbt.analysis.commands import CommandError, fuzz
-from hbt.analysis.commands.fuzz import Atom, Failure, Options, Verdict, atoms, run
-from hbt.analysis.implementations import Selection
+from hbt.analysis.commands.fuzz import Atom, Disagreement, Failure, Options, Trial, Verdict, atoms, run
+from hbt.analysis.implementations import Impl, Selection
 from tests.stubs import DOCUMENT, executable
 
 
@@ -56,6 +56,39 @@ class Atoms(unittest.TestCase):
         failure = Failure("exit 1", ("missing URL",))
         verdicts: dict[str, Verdict] = {"a": _collection(), "b": failure, "c": failure}
         self.assertEqual(atoms(verdicts), {Atom("fails", "exit 1\nmissing URL", (("b", "c"),))})
+
+
+class Target(unittest.TestCase):
+    """A round fails only on its own atom, so shrinking cannot slip to another."""
+
+    def setUp(self) -> None:
+        scratch = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.trial = Trial([Impl("a", Path("never-run"))], ".md", 1.0, scratch)
+        self.email: dict[str, Verdict] = {"a": _collection(), "b": Failure("exit 1", ("missing URL",))}
+        self.undated: dict[str, Verdict] = {"a": _collection(), "b": Failure("exit 1", ("missing date",))}
+        judged = {"email": self.email, "undated": self.undated, "both": self.email, "agreed": {"a": _collection()}}
+        self.enterContext(patch.object(self.trial, "judge", side_effect=judged.__getitem__))
+
+    def test_the_first_new_atom_becomes_the_target(self) -> None:
+        with self.assertRaises(Disagreement) as raised:
+            self.trial.check("email")
+        self.assertEqual(len(atoms(self.email)), 1)
+        expected = next(iter(atoms(self.email)))
+        self.assertEqual(raised.exception.atom, expected)
+        self.assertEqual(self.trial.target, expected)
+
+    def test_another_new_atom_passes_once_there_is_a_target(self) -> None:
+        with self.assertRaises(Disagreement):
+            self.trial.check("email")
+        self.trial.check("undated")
+        with self.assertRaises(Disagreement):
+            self.trial.check("both")
+
+    def test_a_known_atom_does_not_become_the_target(self) -> None:
+        self.trial.known |= atoms(self.email)
+        self.trial.check("email")
+        self.trial.check("agreed")
+        self.assertIsNone(self.trial.target)
 
 
 class Run(unittest.TestCase):
@@ -109,6 +142,39 @@ class Run(unittest.TestCase):
         (written,) = kept.iterdir()
         self.assertEqual(written.name, "fuzz-0-1.input.md")
         self.assertIn("<me@ex.com>", written.read_text(encoding="utf-8"))
+
+    def test_each_disagreement_is_reported_with_its_own_input(self) -> None:
+        """Two refusals, where deleting the date turns the email one into the undated one.
+
+        A round that slipped would still pass this when a later round finds the
+        email refusal again; `Target` is what pins the mechanism.
+        """
+        picky = executable(
+            self.root,
+            "picky",
+            'if ! grep -q "^# " "$3"; then echo "missing date" >&2; exit 1; fi\n'
+            'if grep -q "<me@ex.com>" "$3"; then echo "missing URL" >&2; exit 1; fi\n'
+            f'cat <<"EOF"\n{DOCUMENT}EOF\n',
+        )
+        status, output = self.fuzz((f"hbt-x={self.empty()}", f"hbt-y={picky}"))
+        self.assertEqual(status, 1)
+        reports = output.split("\ndisagreement ")[1:]
+        email = [r for r in reports if "missing URL" in r]
+        self.assertEqual(len(email), 1, output)
+        # Its own input: the email link, and the date that keeps it from being the undated one.
+        self.assertIn("<me@ex.com>", email[0])
+        self.assertIn("| # ", email[0])
+        self.assertTrue(any("missing date" in r for r in reports), output)
+
+    def test_differences_are_shown_when_the_first_implementation_failed(self) -> None:
+        self.enterContext(patch.object(implementations, "implementations", return_value=["hbt-a", "hbt-x", "hbt-y"]))
+        one = DOCUMENT.replace(
+            "length: 0\nvalue: []", "length: 1\nvalue:\n- id: 0\n  entity:\n    uri: https://a.com/\n  edges: []"
+        )
+        failing = executable(self.root, "failing", "exit 1\n")
+        other = executable(self.root, "other", f'cat <<"EOF"\n{one}EOF\n')
+        _, output = self.fuzz((f"hbt-a={failing}", f"hbt-x={self.empty()}", f"hbt-y={other}"))
+        self.assertIn("hbt-y against hbt-x:", output)
 
     def test_one_binary_is_refused(self) -> None:
         with self.assertRaisesRegex(CommandError, "at least two"):
