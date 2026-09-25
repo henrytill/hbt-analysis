@@ -26,7 +26,7 @@ from typing import Any, Mapping, Sequence, TextIO
 
 import click
 
-from hbt.analysis.commands import CommandError, invoke, selection_options
+from hbt.analysis.commands import CommandError, invoke, line, print_table, selection_options, widths
 from hbt.analysis.implementations import (
     WAIVERS_FILE,
     Impl,
@@ -126,20 +126,6 @@ def check_column(
     return Column(impl, corpus, checked)
 
 
-def _widths(rows: Sequence[Sequence[str]]) -> list[int]:
-    return [max(map(len, column)) for column in zip(*rows)]
-
-
-def _line(cells: Sequence[str], widths: Sequence[int]) -> str:
-    return "  ".join(cell.ljust(width) for cell, width in zip(cells, widths)).rstrip()
-
-
-def _print_table(rows: Sequence[Sequence[str]], out: TextIO) -> None:
-    widths = _widths(rows)
-    for row in rows:
-        print(_line(row, widths), file=out)
-
-
 def _header(columns: Sequence[Column], tz: str | None, out: TextIO) -> None:
     """What ran, against which corpus, one implementation to a line.
 
@@ -157,9 +143,9 @@ def _header(columns: Sequence[Column], tz: str | None, out: TextIO) -> None:
     revisions = [ABSENT if c.corpus is None else revision(c.corpus.root) for c in columns]
     for c, rev in zip(columns, revisions):
         fixtures = ABSENT if c.corpus is None else f"{len(c.results)} of {len(c.corpus.fixtures)}"
-        build = (c.impl.revision or "")[:7] or c.impl.version or ABSENT
+        build = c.impl.build or ABSENT
         rows.append((c.impl.name, rev, fixtures, str(c.impl.binary or ABSENT), build))
-    _print_table(rows, out)
+    print_table(rows, out)
     pinned = set(revisions) - {ABSENT}
     if len(pinned) > 1:
         print(f"\nnote: {len(pinned)} different corpus revisions are pinned", file=out)
@@ -177,11 +163,11 @@ def _matrix(columns: Sequence[Column], names: Sequence[str], quiet: bool, out: T
     if not shown:
         return
     header = ["", *(c.impl.name for c in columns)]
-    widths = _widths([header, *([name, *cells] for name, cells in shown)])
+    sizes = widths([header, *([name, *cells] for name, cells in shown)])
     print(file=out)
-    print(_line(header, widths), file=out)
+    print(line(header, sizes), file=out)
     for name, cells in shown:
-        print(_line([name, *cells], widths), file=out)
+        print(line([name, *cells], sizes), file=out)
         for c in columns:
             result = c.results.get(name)
             if result is None or result.outcome is Outcome.PASS:
@@ -199,7 +185,7 @@ def _totals(columns: Sequence[Column], out: TextIO) -> None:
             continue
         rows.append((c.impl.name, c.run.summary() or "nothing ran"))
     print(file=out)
-    _print_table(rows, out)
+    print_table(rows, out)
     for c in columns:
         for name in () if c.run is None else c.run.stale:
             print(f"warning: {c.impl.name} waives unknown fixture {name}", file=out)

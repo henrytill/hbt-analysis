@@ -12,7 +12,6 @@ atom its own through shrinking, and the report and exit status.
 from __future__ import annotations
 
 import io
-import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -23,11 +22,7 @@ from hbt.analysis import implementations
 from hbt.analysis.commands import CommandError, fuzz
 from hbt.analysis.commands.fuzz import Atom, Failure, Options, Verdict, atoms, run
 from hbt.analysis.implementations import Selection
-
-EMPTY = """version: 0.1.0
-length: 0
-value: []
-"""
+from tests.stubs import DOCUMENT, executable
 
 
 def _collection(**entity: Any) -> dict[str, Any]:
@@ -69,22 +64,18 @@ class Run(unittest.TestCase):
         self.enterContext(patch.object(fuzz, "repo_root", return_value=self.root))
         self.enterContext(patch.object(implementations, "implementations", return_value=["hbt-x", "hbt-y"]))
 
-    def stub(self, name: str, script: str) -> str:
-        path = self.root / name
-        path.write_text(f"#!/bin/sh\n{script}", encoding="utf-8")
-        path.chmod(path.stat().st_mode | stat.S_IXUSR)
-        return str(path)
-
     def empty(self) -> str:
-        return self.stub("empty", f'cat <<"EOF"\n{EMPTY}EOF\n')
+        return executable(self.root, "empty", f'cat <<"EOF"\n{DOCUMENT}EOF\n')
 
-    def refuses_email(self) -> str:
-        """Fails on an email autolink, naming its input the way hbt-rs does."""
-        return self.stub(
+    def disagreeing(self) -> tuple[str, ...]:
+        """hbt-x reads everything; hbt-y refuses an email autolink, naming its input as hbt-rs does."""
+        picky = executable(
+            self.root,
             "picky",
             f'if grep -q "<me@ex.com>" "$3"; then echo "Could not parse $3: missing URL" >&2; exit 1; fi\n'
-            f'cat <<"EOF"\n{EMPTY}EOF\n',
+            f'cat <<"EOF"\n{DOCUMENT}EOF\n',
         )
+        return (f"hbt-x={self.empty()}", f"hbt-y={picky}")
 
     def fuzz(self, binary: tuple[str, ...], keep: Path | None = None) -> tuple[int, str]:
         out = io.StringIO()
@@ -99,25 +90,22 @@ class Run(unittest.TestCase):
         self.assertIn("no disagreement found", output)
 
     def test_a_disagreement_fails_the_run_with_its_shrunk_input(self) -> None:
-        status, output = self.fuzz((f"hbt-x={self.empty()}", f"hbt-y={self.refuses_email()}"))
+        status, output = self.fuzz(self.disagreeing())
         self.assertEqual(status, 1)
         self.assertIn("disagreement 1: hbt-y fail(s) where the rest do not", output)
         self.assertIn("1 disagreement(s) found", output)
         shown = [line[6:] for line in output.splitlines() if line.startswith("    | ")]
         self.assertEqual([line for line in shown if line and not line.startswith("# ")], ["<me@ex.com>"], output)
-
-    def test_the_input_path_is_replaced_in_a_diagnostic(self) -> None:
-        """So that one failure of two copies of a document is one atom."""
-        _, output = self.fuzz((f"hbt-x={self.empty()}", f"hbt-y={self.refuses_email()}"))
-        self.assertIn("Could not parse <input>: missing URL", output)
+        # Every document is the same relative path, so its diagnostic reads the same each time.
+        self.assertIn("Could not parse input.md: missing URL", output)
 
     def test_a_seed_reproduces_a_run(self) -> None:
-        binaries = (f"hbt-x={self.empty()}", f"hbt-y={self.refuses_email()}")
+        binaries = self.disagreeing()
         self.assertEqual(self.fuzz(binaries), self.fuzz(binaries))
 
     def test_keep_writes_each_disagreements_input(self) -> None:
         kept = self.root / "kept"
-        self.fuzz((f"hbt-x={self.empty()}", f"hbt-y={self.refuses_email()}"), keep=kept)
+        self.fuzz(self.disagreeing(), keep=kept)
         (written,) = kept.iterdir()
         self.assertEqual(written.name, "fuzz-0-1.input.md")
         self.assertIn("<me@ex.com>", written.read_text(encoding="utf-8"))

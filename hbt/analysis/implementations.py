@@ -48,6 +48,11 @@ class Impl:
     # indistinguishable from a complete one.
     error: str | None = None
 
+    @property
+    def build(self) -> str | None:
+        """Which build this is, for a report: the revision when a caller knows it, else what --version says."""
+        return (self.revision or "")[:7] or self.version
+
 
 @dataclass(frozen=True)
 class Selection:
