@@ -124,6 +124,7 @@
           dependencies =
             (with pkgs.python3Packages; [
               click
+              hypothesis
               jinja2
               tabulate
             ])
@@ -174,6 +175,7 @@
         commands = [
           "bench"
           "conformance"
+          "fuzz"
         ];
         selectionFlags = pkgs.lib.concatMapStringsSep " " (
           name:
