@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
-# Commit whatever scripts/update-submodules.sh staged, on a fresh branch, and
-# open a pull request for it. Does nothing if the index is clean.
+# Commit whatever scripts/update-submodules.sh staged -- the pointers and
+# flake.lock -- on a fresh branch, and open a pull request for it. Does nothing
+# if the index is clean.
 #
 # Split out from update-submodules.sh so that advancing pointers stays usable
 # by hand -- running it locally should leave the changes staged for review, not
@@ -32,9 +33,10 @@ if git diff --cached --quiet; then
 fi
 
 # The commit message claims the pointers moved, so make sure that is all that
-# is staged rather than sweeping up whatever else happened to be in the index.
+# is staged -- they and the lock re-locked to match -- rather than sweeping up
+# whatever else happened to be in the index.
 unexpected=$(git diff --cached --name-only \
-	| grep -vxF -f <(git config --file .gitmodules --get-regexp '^submodule\..*\.path$' | cut -d' ' -f2) \
+	| grep -vxF -e flake.lock -f <(git config --file .gitmodules --get-regexp '^submodule\..*\.path$' | cut -d' ' -f2) \
 	|| true)
 if [ -n "$unexpected" ]; then
 	printf '%s: staged paths that are not submodules:\n%s\n' "$0" "$unexpected" >&2

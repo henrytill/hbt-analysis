@@ -42,8 +42,9 @@
     #
     # The real cost is a third layer of pinning: the lock records a rev for
     # each, on top of this repo's gitlinks and each implementation's own
-    # hbt-data pin. After scripts/update-submodules.sh moves a pointer, re-lock
-    # to match -- `nix flake update hbt-hs hbt-go hbt-js hbt-ocaml hbt-rs`.
+    # hbt-data pin. scripts/update-submodules.sh re-locks each input it moves;
+    # after moving a pointer any other way, re-lock to match --
+    # `nix flake update hbt-hs hbt-go hbt-js hbt-ocaml hbt-rs`.
     hbt-hs.url = "git+file:./hbt-hs";
     hbt-go.url = "git+file:./hbt-go";
     hbt-js.url = "git+file:./hbt-js";

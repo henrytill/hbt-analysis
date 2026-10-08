@@ -10,8 +10,12 @@
 # further confused by leftover local branches inside the submodule checkouts.
 # This asks each remote what its default branch is instead.
 #
-# Only the four top-level submodules are touched. The nested hbt-data pointers
+# Only the top-level submodules are touched. The nested hbt-data pointers
 # belong to the implementations and are bumped in their own repos.
+#
+# Each submodule is also a flake input of the same name, locked in flake.lock,
+# and .#bench builds the locked revision rather than the gitlink. So a run that
+# advances a pointer re-locks that input too, which needs nix on PATH.
 #
 # Usage:
 #   scripts/update-submodules.sh [-n|--dry-run]
@@ -32,6 +36,7 @@ cd "$(git rev-parse --show-toplevel)"
 
 changed=0
 failed=0
+advanced=()
 
 while read -r path; do
 	[ -n "$path" ] || continue
@@ -86,6 +91,7 @@ while read -r path; do
 		continue
 	fi
 	git add "$path"
+	advanced+=("$path")
 	changed=$((changed + 1))
 done < <(git config --file .gitmodules --get-regexp '^submodule\..*\.path$' | cut -d' ' -f2)
 
@@ -95,6 +101,13 @@ done < <(git config --file .gitmodules --get-regexp '^submodule\..*\.path$' | cu
 # revisions pin. This checks out their pins; it does not advance them.
 if [ "$changed" -gt 0 ] && ! $dry_run; then
 	git submodule update --init --recursive --quiet
+
+	# The same omission one layer up: a lock left on the old revisions builds
+	# something other than what the gitlinks say. Only the inputs that moved:
+	# a skipped submodule's worktree is in whatever state made it fail, which
+	# is nothing this run should write into the lock.
+	nix flake update "${advanced[@]}"
+	git add flake.lock
 fi
 
 if [ "$changed" -eq 0 ] && [ "$failed" -eq 0 ]; then
@@ -104,7 +117,7 @@ elif [ "$changed" -eq 0 ]; then
 elif $dry_run; then
 	printf '\n%s submodule(s) would be advanced; re-run without --dry-run\n' "$changed"
 else
-	printf '\n%s submodule(s) advanced and staged\n' "$changed"
+	printf '\n%s submodule(s) advanced and staged, with flake.lock re-locked to match\n' "$changed"
 fi
 
 # Exit non-zero on a partial run so CI does not open a pull request that
