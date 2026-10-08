@@ -14,12 +14,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # fetch-depth: 0 reaches the submodules too, which actions/checkout
-      # otherwise clones at depth 1 -- and in a shallow clone the summary
-      # cannot count the commits each pointer moved by.
+      # otherwise clones at depth 1. The re-lock needs it: nix will not lock a
+      # shallow git+file: input ("'revCount' is not available"). It is also
+      # what lets the summary count the commits each pointer moved by.
       - uses: actions/checkout@v7
         with:
           submodules: true
           fetch-depth: 0
+
+      # For the script's re-lock of flake.lock. No cachix: nothing is built.
+      - uses: cachix/install-nix-action@v31
 
       # `shell: bash` is not redundant: a bare `run:` uses `bash -e {0}`, which
       # has no pipefail, so `tee` exiting 0 would mask a failed script.

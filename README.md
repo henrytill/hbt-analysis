@@ -117,7 +117,7 @@ A seed reproduces a run, unless a document takes longer than `--timeout` on one 
 
 The four implementations are flake inputs, which is what lets `.#bench` build them end to end. They are `git+file:` inputs rather than `path:`: three of the four subflakes derive their version from `self.shortRev or self.dirtyShortRev`, and a path input carries no git metadata at all, so they fail to evaluate with `attribute 'dirtyShortRev' missing`.
 
-The cost is a third layer of pinning. `flake.lock` records a rev for each implementation, on top of this repo's gitlinks and each implementation's own `hbt-data` pin. After `scripts/update-submodules.sh` moves a pointer, re-lock to match:
+The cost is a third layer of pinning. `flake.lock` records a rev for each implementation, on top of this repo's gitlinks and each implementation's own `hbt-data` pin. `scripts/update-submodules.sh` re-locks each input it moves, so its bumps arrive with the lock already matching. After moving a pointer any other way, re-lock to match:
 
 ```sh
 nix flake update hbt-hs hbt-go hbt-js hbt-ocaml hbt-rs
