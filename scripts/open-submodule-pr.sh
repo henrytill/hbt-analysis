@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# Commit whatever scripts/update-submodules.sh staged -- the pointers and
+# Commit whatever scripts/update-submodules.pl staged -- the pointers and
 # flake.lock -- on a fresh branch, and open a pull request for it. Does nothing
 # if the index is clean.
 #
-# Split out from update-submodules.sh so that advancing pointers stays usable
+# Split out from update-submodules.pl so that advancing pointers stays usable
 # by hand -- running it locally should leave the changes staged for review, not
 # commit and push them. This is the half only CI wants.
 #
@@ -12,7 +12,7 @@
 #   scripts/open-submodule-pr.sh <summary-file>
 #
 # The summary file becomes the commit message body; pass the output of
-# update-submodules.sh. Requires the gh CLI with actions, contents and
+# update-submodules.pl. Requires the gh CLI with actions, contents and
 # pull-requests write access; the built-in GITHUB_TOKEN is enough. Refuses to
 # run outside GitHub Actions: it commits, pushes, and leaves you on a new
 # branch.

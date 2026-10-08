@@ -100,7 +100,7 @@ def implementations(root: Path) -> list[str]:
 
     The submodule directory name doubles as the implementation name and as the
     `result-hbt-*` symlink suffix, so .gitmodules is the one place that already
-    knows this.  scripts/update-submodules.sh and scripts/open-submodule-pr.sh
+    knows this.  scripts/update-submodules.pl and scripts/open-submodule-pr.sh
     both read it the same way, deliberately, so that neither carries a list to
     keep up to date.
 

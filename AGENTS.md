@@ -5,7 +5,7 @@ This file provides guidance to coding agents working in this repository. `CLAUDE
 **Two rules that prevent most wasted moves here:**
 
 1. **Nothing works outside Nix.** There is no system-wide `cargo`, `go`, `dune`, `ghc`, or `cabal`. Enter a dev shell first: `cd hbt-rs && nix develop`. The root has one too, for the benchmark harness and the bash scripts.
-2. **Every submodule pointer goes stale**, in two layers. A failing conformance fixture is more often an old pin than a parser bug — see [The shared test-data contract](#the-shared-test-data-contract-hbt-data). `scripts/update-submodules.sh -n` reports the drift in a few seconds.
+2. **Every submodule pointer goes stale**, in two layers. A failing conformance fixture is more often an old pin than a parser bug — see [The shared test-data contract](#the-shared-test-data-contract-hbt-data). `scripts/update-submodules.pl -n` reports the drift in a few seconds.
 
 ## What this repository is
 
@@ -29,7 +29,7 @@ A third command, `fuzz` (`hbt/analysis/commands/fuzz.py` driving the `hbt.fuzz` 
 
 **You almost certainly cannot re-run the real benchmark.** The corpus in `benchmarks/corpus.toml` points at the author's private bookmark exports (`~/src/notes/all-2024.md`, `~/src/bookmarks/*`); they are in no repo and do not exist in a fresh checkout, so refreshing the numbers is not work an agent can do. Point the corpus at the `hbt-data` fixtures for a smoke test — they exercise every code path but are far too small to time meaningfully.
 
-The four implementations are `git+file:` flake inputs of the root flake, which is what makes `.#bench` work end to end. That is a **third layer of pinning** on top of the gitlinks and each implementation's own `hbt-data` pin: `scripts/update-submodules.sh` re-locks each input it moves, but after moving a pointer any other way, `nix flake update hbt-hs hbt-go hbt-js hbt-ocaml hbt-rs` is needed for `.#bench` to build the new revisions. `path:` inputs would avoid the extra pin but cannot work — three of the four subflakes read `self.shortRev or self.dirtyShortRev`, and path inputs carry no git metadata, so `hbt-go` dies with `attribute 'dirtyShortRev' missing`. That also rules out the replacement [NixOS/nix#12281](https://github.com/NixOS/nix/issues/12281) prescribes for the deprecation warning these inputs emit (bare path literal + `inputs.self.submodules`), so **don't "fix" the warning** — it was tried, it fails, and the comment in `flake.nix` records why. Making it work is an upstream change in all four implementations. `inputs.self.submodules = true` is set; the `hbt-analysis` derivation takes a `lib.fileset`-filtered `src`, so the submodule trees it pulls into `self` never reach the build.
+The four implementations are `git+file:` flake inputs of the root flake, which is what makes `.#bench` work end to end. That is a **third layer of pinning** on top of the gitlinks and each implementation's own `hbt-data` pin: `scripts/update-submodules.pl` re-locks each input it moves, but after moving a pointer any other way, `nix flake update hbt-hs hbt-go hbt-js hbt-ocaml hbt-rs` is needed for `.#bench` to build the new revisions. `path:` inputs would avoid the extra pin but cannot work — three of the four subflakes read `self.shortRev or self.dirtyShortRev`, and path inputs carry no git metadata, so `hbt-go` dies with `attribute 'dirtyShortRev' missing`. That also rules out the replacement [NixOS/nix#12281](https://github.com/NixOS/nix/issues/12281) prescribes for the deprecation warning these inputs emit (bare path literal + `inputs.self.submodules`), so **don't "fix" the warning** — it was tried, it fails, and the comment in `flake.nix` records why. Making it work is an upstream change in all four implementations. `inputs.self.submodules = true` is set; the `hbt-analysis` derivation takes a `lib.fileset`-filtered `src`, so the submodule trees it pulls into `self` never reach the build.
 
 **The `result-hbt-*` symlinks are working binaries**, not just build output. Use them for any question about what an implementation *does* — it costs nothing and needs no Nix invocation:
 
@@ -41,7 +41,7 @@ Rebuild only when you have moved a pointer. They are gitignored Nix store paths.
 
 Work in this repo is usually *within* one submodule. Commits at the root are almost always submodule pointer bumps (`git add hbt-rs && git commit`), and changes to a submodule must be committed and pushed in that submodule's own repo first.
 
-To advance the four top-level pointers to their upstream default branches, run `scripts/update-submodules.sh` — `-n`/`--dry-run` reports what would move without touching anything. It stages the bumps and leaves them for you to review and commit; it reports and skips a submodule it cannot check out (a worktree left dirty by a local build), and exits non-zero if any were skipped. It also re-checkouts the nested `hbt-data` copies to whatever the new revisions pin, which is otherwise the step whose omission shows up as mass conformance failures, and re-locks the moved inputs in `flake.lock` — so, unlike the rest of `scripts/`, it needs `nix` on `PATH`, and it cannot re-lock in a shallow clone. A monthly workflow runs the same script and opens a pull request; that half lives in `scripts/open-submodule-pr.sh`, which refuses to run outside CI.
+To advance the four top-level pointers to their upstream default branches, run `scripts/update-submodules.pl` — `-n`/`--dry-run` reports what would move without touching anything. It stages the bumps and leaves them for you to review and commit; it reports and skips a submodule it cannot check out (a worktree left dirty by a local build), and exits non-zero if any were skipped. It also re-checkouts the nested `hbt-data` copies to whatever the new revisions pin, which is otherwise the step whose omission shows up as mass conformance failures, and re-locks the moved inputs in `flake.lock` — so, unlike the rest of `scripts/`, it needs `nix` on `PATH`, and it cannot re-lock in a shallow clone. A monthly workflow runs the same script and opens a pull request; that half lives in `scripts/open-submodule-pr.sh`, which refuses to run outside CI.
 
 ## Building and testing
 
@@ -183,7 +183,7 @@ black hbt tests && isort hbt tests && flake8 hbt tests && mypy hbt tests && pyli
 python3 -m unittest discover -s tests -t .
 ```
 
-The set of implementations is read from `.gitmodules` at runtime, the same way `scripts/update-submodules.sh` and `scripts/open-submodule-pr.sh` do it — adding or removing a submodule needs no edit in `hbt/`, and `flake.nix` reads the same file, so each submodule path must also be a flake input of that name. Report columns are sorted, so `.gitmodules` ordering does not leak into the output.
+The set of implementations is read from `.gitmodules` at runtime, the same way `scripts/update-submodules.pl` and `scripts/open-submodule-pr.sh` do it — adding or removing a submodule needs no edit in `hbt/`, and `flake.nix` reads the same file, so each submodule path must also be a flake input of that name. Report columns are sorted, so `.gitmodules` ordering does not leak into the output.
 
 `hbt` is a [PEP 420](https://peps.python.org/pep-0420/) namespace portion: it deliberately has **no `__init__.py`**, and this repository contributes three members to it.
 
@@ -192,6 +192,12 @@ The set of implementations is read from `.gitmodules` at runtime, the same way `
 - **`hbt.analysis`** is the `hbt-analysis` executable, a Click group driving the libraries: `cli.py` gathers the commands; `commands/bench.py`, `commands/conformance.py` and `commands/fuzz.py` are the three commands; `commands/__init__.py` holds what they share — the `--impl`/`--binary`/`--revision` options, deliberately on each command rather than the group (the `selection_options` docstring says why), and the exit-status handling, which treats `CommandError`, `ImplementationError` and each library's own error alike as a refusal; and `implementations.py` finds the implementations, their binaries, their pinned corpora and their waivers files.
 
 All three ship in the one `hbt-analysis` distribution. The checkers cannot infer the namespace root on their own and would read `hbt/analysis` as a top-level `analysis` — mypy needs `explicit_package_bases`, pylint needs `source-roots = ["."]`, and both are set in `pyproject.toml`. `checks.mypy` in `flake.nix` builds its own directory to get trees at `hbt/analysis`, `hbt/bench` and `hbt/fuzz`, and points mypy at `pyproject.toml` with `--config-file` so it runs the same check the dev shell does rather than a second opinion assembled from flags.
+
+`scripts/update-submodules.pl` is Perl, driving git through `Git.pm`, the Perl API git ships. Distributions install it with git (Debian and Ubuntu's `git` package puts it in `/usr/share/perl5`), so the system `perl` finds it, and that is what the workflow runs. Nix's git keeps it under its own prefix instead, so the root dev shell sets `PERL5LIB` to that git's copy and puts the same git on `PATH`. It is formatted by `perltidy` under the root `.perltidyrc`, also in the dev shell:
+
+```sh
+perltidy scripts/*.pl && perl -c scripts/*.pl
+```
 
 Bash in `scripts/` uses **hard tabs, tab-width 8**. `shellcheck` and `shfmt` are in the root dev shell; the flag set that matches the existing style is:
 

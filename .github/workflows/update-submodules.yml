@@ -28,7 +28,10 @@ jobs:
 
       # `shell: bash` is not redundant: a bare `run:` uses `bash -e {0}`, which
       # has no pipefail, so `tee` exiting 0 would mask a failed script.
-      - run: scripts/update-submodules.sh | tee summary.txt
+      #
+      # The runner's own perl, not nix's: Ubuntu's git package installs Git.pm
+      # where the system perl looks, so nothing needs building first.
+      - run: scripts/update-submodules.pl | tee summary.txt
         shell: bash
 
       - run: scripts/open-submodule-pr.sh summary.txt

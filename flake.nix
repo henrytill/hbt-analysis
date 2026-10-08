@@ -42,7 +42,7 @@
     #
     # The real cost is a third layer of pinning: the lock records a rev for
     # each, on top of this repo's gitlinks and each implementation's own
-    # hbt-data pin. scripts/update-submodules.sh re-locks each input it moves;
+    # hbt-data pin. scripts/update-submodules.pl re-locks each input it moves;
     # after moving a pointer any other way, re-lock to match --
     # `nix flake update hbt-hs hbt-go hbt-js hbt-ocaml hbt-rs`.
     hbt-hs.url = "git+file:./hbt-hs";
@@ -282,10 +282,16 @@
 
         devShells.default = pkgs.mkShell {
           inputsFrom = [ hbtAnalysis ];
+          # scripts/update-submodules.pl uses Git.pm, which git installs under
+          # its own prefix rather than on perl's @INC. Point perl at the copy
+          # that ships with this git, so the two always match.
+          PERL5LIB = "${pkgs.git}/${pkgs.perl.libPrefix}";
           packages =
             (with pkgs; [
+              git
               hyperfine
               nixfmt
+              (perl.withPackages (p: [ p.PerlTidy ]))
               pyright
               shellcheck
               shfmt
