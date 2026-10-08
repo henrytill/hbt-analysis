@@ -70,9 +70,9 @@ git \
 git push -q origin "$branch"
 gh pr create --fill --head "$branch"
 
-# A pull request opened with the built-in GITHUB_TOKEN triggers no
-# pull_request workflows, so the bump would arrive with no conformance run --
-# the one check that says whether the new revisions still agree. A dispatch is
-# exempt from that rule, and its run reports on the same head commit, so it
-# shows up on the pull request.
+# A pull request opened with the built-in GITHUB_TOKEN gets its pull_request
+# runs, but they wait as "action_required" until a maintainer approves them,
+# so the bump would arrive with no conformance run -- the one check that says
+# whether the new revisions still agree. A dispatched run needs no approval,
+# and it reports on the branch's head commit, which is the pull request's.
 gh workflow run info.yml --ref "$branch"
