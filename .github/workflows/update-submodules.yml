@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: write # to dispatch the info workflow on the new branch
   contents: write
   pull-requests: write
 

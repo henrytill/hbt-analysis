@@ -12,9 +12,10 @@
 #   scripts/open-submodule-pr.sh <summary-file>
 #
 # The summary file becomes the commit message body; pass the output of
-# update-submodules.sh. Requires the gh CLI with contents and pull-requests
-# write access; the built-in GITHUB_TOKEN is enough. Refuses to run outside
-# GitHub Actions: it commits, pushes, and leaves you on a new branch.
+# update-submodules.sh. Requires the gh CLI with actions, contents and
+# pull-requests write access; the built-in GITHUB_TOKEN is enough. Refuses to
+# run outside GitHub Actions: it commits, pushes, and leaves you on a new
+# branch.
 
 set -euo pipefail
 
@@ -68,3 +69,10 @@ git \
 	commit -q -m "Advance submodule pointers" -m "$body"
 git push -q origin "$branch"
 gh pr create --fill --head "$branch"
+
+# A pull request opened with the built-in GITHUB_TOKEN triggers no
+# pull_request workflows, so the bump would arrive with no conformance run --
+# the one check that says whether the new revisions still agree. A dispatch is
+# exempt from that rule, and its run reports on the same head commit, so it
+# shows up on the pull request.
+gh workflow run info.yml --ref "$branch"
