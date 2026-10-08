@@ -13,9 +13,13 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 reaches the submodules too, which actions/checkout
+      # otherwise clones at depth 1 -- and in a shallow clone the summary
+      # cannot count the commits each pointer moved by.
       - uses: actions/checkout@v7
         with:
           submodules: true
+          fetch-depth: 0
 
       # `shell: bash` is not redundant: a bare `run:` uses `bash -e {0}`, which
       # has no pipefail, so `tee` exiting 0 would mask a failed script.
