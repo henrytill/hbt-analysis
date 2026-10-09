@@ -45,6 +45,6 @@ while read -r name; do
 	fi
 
 	out=$(nix build --no-link --print-out-paths ".#$name")
-	cachix pin henrytill "$name" "$out" --artifact bin/hbt --keep-revisions 1
+	cachix pin henrytill "$name" "$out" --keep-revisions 1
 	printf '%s: pinned %s\n' "$name" "$out"
 done < <(git config --file .gitmodules --get-regexp '^submodule\..*\.path$' | cut -d' ' -f2)
