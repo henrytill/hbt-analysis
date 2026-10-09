@@ -220,10 +220,16 @@
             '';
       in
       {
-        packages.hbt-analysis = hbtAnalysis;
-        packages.all = withImplementations;
-        packages.site = site;
-        packages.default = hbtAnalysis;
+        # Each implementation's CLI at its flake.lock revision, under its own
+        # name: the binaries .#bench and .#conformance run, reachable on their
+        # own. scripts/pin-outputs.sh pins these, so that what the cache keeps
+        # is what CI just built and not the working tree's checkout.
+        packages = pkgs.lib.genAttrs names cliPackage // {
+          hbt-analysis = hbtAnalysis;
+          all = withImplementations;
+          inherit site;
+          default = hbtAnalysis;
+        };
 
         apps =
           pkgs.lib.genAttrs commands (command: {
@@ -284,6 +290,7 @@
           inputsFrom = [ hbtAnalysis ];
           packages =
             (with pkgs; [
+              cachix
               hyperfine
               nixfmt
               pyright
