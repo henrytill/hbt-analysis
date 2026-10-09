@@ -76,7 +76,7 @@ class Selection:
 def submodules(gitmodules: Path) -> dict[str, str]:
     """Each submodule path in `gitmodules`, mapped to its URL.
 
-    Read with `git config` rather than parsed here, the way both scripts read
+    Read with `git config` rather than parsed here, the way the scripts read
     it too.
     """
     out = subprocess.run(
