@@ -54,9 +54,10 @@ jobs:
       # revision would take the pin and release master's. Before the
       # conformance step, so a failing matrix does not leave the pins behind
       # the pointers.
+      #
+      # No token here: cachix-action above has already stored it with
+      # `cachix authtoken`, which is what `cachix pin` reads.
       - if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        env:
-          CACHIX_AUTH_TOKEN: "${{ secrets.CACHIX_AUTH_TOKEN }}"
         run: scripts/pin-outputs.sh
 
       # The entity-count table is the interesting part, so put it where it can
