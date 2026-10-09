@@ -20,6 +20,11 @@
 # cache (CACHIX_AUTH_TOKEN, or `cachix authtoken`). The packages are realised
 # first, since cachix pins only paths in the local store; in CI .#bench has
 # already built them.
+#
+# Each is pushed before it is pinned. In CI, cachix-action uploads new builds
+# from a daemon and only waits for it after the job, so a build .#bench just
+# made may not be in the cache yet when this runs; locally, nothing else
+# pushes at all. The push skips whatever the cache already has.
 
 set -euo pipefail
 
@@ -45,6 +50,7 @@ while read -r name; do
 	fi
 
 	out=$(nix build --no-link --print-out-paths ".#$name")
+	cachix push henrytill "$out"
 	cachix pin henrytill "$name" "$out" --keep-revisions 1
 	printf '%s: pinned %s\n' "$name" "$out"
 done < <(git config --file .gitmodules --get-regexp '^submodule\..*\.path$' | cut -d' ' -f2)
