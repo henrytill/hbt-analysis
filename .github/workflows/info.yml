@@ -49,6 +49,16 @@ jobs:
             -o "$RUNNER_TEMP/info.json" \
             -r "$RUNNER_TEMP/info.md"
 
+      # Pin the builds .#bench just made, so the cache keeps what master points
+      # at. Master pushes only: pinned from a pull request, an unmerged
+      # revision would take the pin and release master's. Before the
+      # conformance step, so a failing matrix does not leave the pins behind
+      # the pointers.
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          CACHIX_AUTH_TOKEN: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+        run: scripts/pin-outputs.sh
+
       # The entity-count table is the interesting part, so put it where it can
       # be read without opening the log. A row where the four disagree is a
       # parity bug -- the check does not fail on one, it only surfaces it.
