@@ -14,28 +14,24 @@
 # release the ones master points at.
 #
 # Usage:
-#   scripts/pin-outputs.sh [-n|--dry-run] [CACHE]
+#   scripts/pin-outputs.sh [-n|--dry-run]
 #
-# CACHE defaults to henrytill. Requires nix, and cachix authenticated with
-# write access to the cache (CACHIX_AUTH_TOKEN, or `cachix authtoken`). The
-# packages are realised first, since cachix pins only paths in the local
-# store; in CI .#bench has already built them.
+# Requires nix, and cachix authenticated with write access to the henrytill
+# cache (CACHIX_AUTH_TOKEN, or `cachix authtoken`). The packages are realised
+# first, since cachix pins only paths in the local store; in CI .#bench has
+# already built them.
 
 set -euo pipefail
 
 dry_run=false
 case ${1-} in
-	-n | --dry-run)
-		dry_run=true
-		shift
+	-n | --dry-run) dry_run=true ;;
+	"") ;;
+	*)
+		printf 'usage: %s [-n|--dry-run]\n' "$0" >&2
+		exit 2
 		;;
 esac
-
-if [ $# -gt 1 ]; then
-	printf 'usage: %s [-n|--dry-run] [CACHE]\n' "$0" >&2
-	exit 2
-fi
-cache=${1-henrytill}
 
 cd "$(git rev-parse --show-toplevel)"
 
@@ -49,6 +45,6 @@ while read -r name; do
 	fi
 
 	out=$(nix build --no-link --print-out-paths ".#$name")
-	cachix pin "$cache" "$name" "$out" --artifact bin/hbt --keep-revisions 1
+	cachix pin henrytill "$name" "$out" --artifact bin/hbt --keep-revisions 1
 	printf '%s: pinned %s\n' "$name" "$out"
 done < <(git config --file .gitmodules --get-regexp '^submodule\..*\.path$' | cut -d' ' -f2)
