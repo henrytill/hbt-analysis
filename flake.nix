@@ -54,7 +54,7 @@
     # The conformance harness, which `hbt-analysis conformance` imports rather than
     # reimplements. A flake input and not a fifth submodule: everything that
     # derives the set of implementations -- hbt.analysis.implementations and
-    # both scripts -- reads it from .gitmodules, where an hbt-data entry would
+    # the scripts -- reads it from .gitmodules, where an hbt-data entry would
     # read as a fifth implementation. Only the code comes from here; each
     # implementation is checked against the corpus it pins itself.
     #
@@ -79,7 +79,7 @@
     }@inputs:
     let
       # The submodule paths in .gitmodules, which is where hbt.analysis and
-      # both scripts read the set of implementations from, rather than a
+      # the scripts read the set of implementations from, rather than a
       # second literal list or a naming convention the hbt-data input already
       # breaks. Each has to be an input of the same name too, and one that is
       # not fails evaluation by name. Order is irrelevant here -- the report's
