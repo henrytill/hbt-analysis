@@ -43,6 +43,10 @@ jobs:
       # Out to RUNNER_TEMP, not the workspace: --info-only refuses the default
       # output, because a document with no timings must never be mistaken for
       # benchmarks/results.json, which is what the published page renders.
+      #
+      # It fails if the implementations count any input differently, after
+      # writing both files, so the steps below that read them or diagnose it
+      # run on !cancelled() rather than on success.
       - run: |
           nix run -L .#bench -- --info-only \
             --corpus benchmarks/fixtures.toml \
@@ -53,29 +57,36 @@ jobs:
       # at. Master pushes only: pinned from a pull request, an unmerged
       # revision would take the pin and release master's. Before the
       # conformance step, so a failing matrix does not leave the pins behind
-      # the pointers.
+      # the pointers -- and not skipped when the entity counts disagree, for
+      # the same reason.
       #
       # No token here: cachix-action above has already stored it with
       # `cachix authtoken`, which is what `cachix pin` reads.
-      - if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      - if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
         run: scripts/pin-outputs.sh
 
       # The entity-count table is the interesting part, so put it where it can
-      # be read without opening the log. A row where the four disagree is a
-      # parity bug -- the check does not fail on one, it only surfaces it.
-      - run: cat "$RUNNER_TEMP/info.md" >> "$GITHUB_STEP_SUMMARY"
+      # be read without opening the log -- most of all when a row disagrees and
+      # the step above has failed on it.
+      - if: ${{ !cancelled() }}
+        run: |
+          [ -f "$RUNNER_TEMP/info.md" ] || exit 0
+          cat "$RUNNER_TEMP/info.md" >> "$GITHUB_STEP_SUMMARY"
 
       # The conformance matrix: every implementation against the corpus it
-      # pins, through the same builds .#bench just made. Unlike the entity
-      # counts, this does fail the workflow -- a cell that is not PASS or XFAIL
-      # is a fixture some implementation does not satisfy.
+      # pins, through the same builds .#bench just made. It fails the workflow
+      # on a cell that is not PASS or XFAIL -- a fixture some implementation
+      # does not satisfy -- and runs even when the entity counts disagree,
+      # since it is what says which fields a miscounting implementation got
+      # wrong.
       #
       # pipefail is what makes that true: the matrix is piped into tee for the
       # step summary, and without it the pipeline's status is tee's, so the
       # step would pass whatever the command exits with. A step with no
       # `shell:` runs under `bash -e`, which does not set it, so the script
       # sets it itself rather than resting on the shell line alone.
-      - shell: bash
+      - if: ${{ !cancelled() }}
+        shell: bash
         run: |
           set -o pipefail
           nix run -L .#conformance | tee "$RUNNER_TEMP/conformance.txt"
