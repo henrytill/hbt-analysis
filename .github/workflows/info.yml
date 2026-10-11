@@ -44,9 +44,13 @@ jobs:
       # output, because a document with no timings must never be mistaken for
       # benchmarks/results.json, which is what the published page renders.
       #
-      # It fails if the implementations count any input differently, after
-      # writing both files, so the steps below that read them or diagnose it
-      # run on !cancelled() rather than on success.
+      # It exits 1 if the implementations count any input differently, after
+      # writing both files, so the steps below run on !cancelled() rather than
+      # on success: the pins and the summary should not be lost to a count,
+      # and the conformance matrix is what says which fields went wrong. The
+      # pin and conformance steps first check that info.json was written --
+      # it is only once every implementation has built -- so a broken build
+      # or a refusal fails here once rather than being rebuilt by each.
       - run: |
           nix run -L .#bench -- --info-only \
             --corpus benchmarks/fixtures.toml \
@@ -57,17 +61,17 @@ jobs:
       # at. Master pushes only: pinned from a pull request, an unmerged
       # revision would take the pin and release master's. Before the
       # conformance step, so a failing matrix does not leave the pins behind
-      # the pointers -- and not skipped when the entity counts disagree, for
-      # the same reason.
+      # the pointers.
       #
       # No token here: cachix-action above has already stored it with
       # `cachix authtoken`, which is what `cachix pin` reads.
       - if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-        run: scripts/pin-outputs.sh
+        run: |
+          [ -f "$RUNNER_TEMP/info.json" ] || exit 0
+          scripts/pin-outputs.sh
 
       # The entity-count table is the interesting part, so put it where it can
-      # be read without opening the log -- most of all when a row disagrees and
-      # the step above has failed on it.
+      # be read without opening the log.
       - if: ${{ !cancelled() }}
         run: |
           [ -f "$RUNNER_TEMP/info.md" ] || exit 0
@@ -76,9 +80,7 @@ jobs:
       # The conformance matrix: every implementation against the corpus it
       # pins, through the same builds .#bench just made. It fails the workflow
       # on a cell that is not PASS or XFAIL -- a fixture some implementation
-      # does not satisfy -- and runs even when the entity counts disagree,
-      # since it is what says which fields a miscounting implementation got
-      # wrong.
+      # does not satisfy.
       #
       # pipefail is what makes that true: the matrix is piped into tee for the
       # step summary, and without it the pipeline's status is tee's, so the
@@ -88,6 +90,7 @@ jobs:
       - if: ${{ !cancelled() }}
         shell: bash
         run: |
+          [ -f "$RUNNER_TEMP/info.json" ] || exit 0
           set -o pipefail
           nix run -L .#conformance | tee "$RUNNER_TEMP/conformance.txt"
       - if: ${{ !cancelled() }}
