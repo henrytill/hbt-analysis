@@ -265,7 +265,7 @@ def run(selection: Selection, options: Options, out: TextIO) -> int:
 @click.option(
     "--timeout",
     type=float,
-    default=DEFAULT_TIMEOUT,
+    default=Options.timeout,
     show_default=True,
     help="per-fixture timeout in seconds",
 )
@@ -277,7 +277,7 @@ def run(selection: Selection, options: Options, out: TextIO) -> int:
     "-j",
     "--jobs",
     type=click.IntRange(min=1),
-    default=8,
+    default=Options.jobs,
     show_default=True,
     help="fixtures to run at once, per implementation",
 )

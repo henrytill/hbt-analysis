@@ -20,9 +20,6 @@ from hbt.analysis.commands import CommandError, invoke, print_table, selection_o
 from hbt.analysis.implementations import Impl, Selection, choose, discover, repo_root
 from hbt.fuzz import GENERATORS, Disagreement, Trial, report, search
 
-# A fuzzed document is a few dozen lines; anything slower than this is a hang.
-DEFAULT_TIMEOUT = 10.0
-
 
 @dataclass(frozen=True)
 class Options:
@@ -31,7 +28,8 @@ class Options:
     format: str = "markdown"
     examples: int = 200
     seed: int | None = None
-    timeout: float = DEFAULT_TIMEOUT
+    # A fuzzed document is a few dozen lines; anything slower than this is a hang.
+    timeout: float = 10.0
     shrink: bool = True
     keep: Path | None = None
 
@@ -98,7 +96,7 @@ def run(selection: Selection, options: Options, out: TextIO) -> int:
 @click.option(
     "--format",
     type=click.Choice(sorted(GENERATORS)),
-    default="markdown",
+    default=Options.format,
     show_default=True,
     help="the input format to generate",
 )
@@ -106,7 +104,7 @@ def run(selection: Selection, options: Options, out: TextIO) -> int:
     "-n",
     "--examples",
     type=click.IntRange(min=1),
-    default=200,
+    default=Options.examples,
     show_default=True,
     help="documents to generate per round, not counting the ones shrinking tries",
 )
@@ -118,13 +116,13 @@ def run(selection: Selection, options: Options, out: TextIO) -> int:
 @click.option(
     "--timeout",
     type=float,
-    default=DEFAULT_TIMEOUT,
+    default=Options.timeout,
     show_default=True,
     help="per-document timeout in seconds",
 )
 @click.option(
     "--shrink/--no-shrink",
-    default=True,
+    default=Options.shrink,
     show_default=True,
     help="shrink each disagreement to the simplest document that still shows it",
 )
