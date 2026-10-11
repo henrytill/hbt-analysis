@@ -321,10 +321,10 @@
         "uri-bytestring-src": "uri-bytestring-src"
       },
       "locked": {
-        "lastModified": 1791522826,
-        "narHash": "sha256-C635acetTV6hOA3f3reOdv8ZycHoQxu4vFa7siET0Gw=",
-        "rev": "9feb2c2c2036364e0aefc7a73b82eca11f35ef10",
-        "revCount": 513,
+        "lastModified": 1791597437,
+        "narHash": "sha256-2+qD8yI+vugLpg12YQRxgQfwW2yeodbKx57kuRC6+rc=",
+        "rev": "db5cbb99aea01a8646081f4b443c9a96a707dee1",
+        "revCount": 514,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-hs"
@@ -341,10 +341,10 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1791519277,
-        "narHash": "sha256-qVglLeodOta/Z4CFFqe2uCfeCWSfEwhfdGOWkExiZfA=",
-        "rev": "b3ce1083e4776302e98d4df6739866f868e3b96c",
-        "revCount": 104,
+        "lastModified": 1791684450,
+        "narHash": "sha256-yejxwxmj/1qXiwj1ZAyAOCdrqodONgaiBk6k/64TDTE=",
+        "rev": "2298a0e132afe98879efd2b9cd62b69a8c70a849",
+        "revCount": 105,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-js"
@@ -367,10 +367,10 @@
         "opam-repository": "opam-repository"
       },
       "locked": {
-        "lastModified": 1791498378,
-        "narHash": "sha256-mTRZvFSayew+JxPQ/LsMv/no6ofw8lDPJuobgtRuxSc=",
-        "rev": "63c886c0de694af08d7465ae5946808c2387377e",
-        "revCount": 623,
+        "lastModified": 1791626351,
+        "narHash": "sha256-IItnUq21zLI1dCaH87Q8QfdKXAyWlTtr8oLh0oAan4M=",
+        "rev": "632d8a33938702d923447d0837cbe512dd046525",
+        "revCount": 636,
         "submodules": true,
         "type": "git",
         "url": "file:./hbt-ocaml"
