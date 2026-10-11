@@ -2,7 +2,8 @@
 
 The timings need hyperfine and are not tested here.  What is tested is the
 --info stage's one judgement: a row where the implementations count
-differently fails the run, and a row some of them cannot read does not.
+differently is named in the report and fails the run, and a row some of them
+cannot read is neither.
 """
 
 # Each test's name is its description; a docstring would restate it.
@@ -15,34 +16,54 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 from hbt.analysis import implementations
 from hbt.analysis.commands import bench
 from hbt.analysis.commands.bench import Options, run
-from hbt.analysis.implementations import Impl, Selection
-from hbt.bench import Input, Pair, disagreements
+from hbt.analysis.implementations import Selection
+from hbt.bench import FORMAT_VERSION, disagreements, render
 from tests.stubs import executable
 
-MARKDOWN = Input("markdown", Path("markdown.md"))
 
-
-def pair(name: str, entities: int | None = None, error: str | None = None) -> Pair:
-    return Pair(Impl(name), MARKDOWN.name, entities, error)
+def document(*results: tuple[str, str, int | None]) -> dict[str, Any]:
+    """A results document with one cell per (implementation, input, entities); None is a failed cell."""
+    impls = sorted({r[0] for r in results})
+    inputs = sorted({r[1] for r in results})
+    return {
+        "version": FORMAT_VERSION,
+        "generated": "2026-01-01T00:00:00+00:00",
+        "hyperfine": None,
+        "host": {"node": "somewhere", "machine": "x86_64", "system": "Linux", "release": "6"},
+        "implementations": [
+            {"name": n, "store_path": None, "version": None, "revision": None, "error": None} for n in impls
+        ],
+        "inputs": [{"name": n, "path": f"{n}.in"} for n in inputs],
+        "results": [
+            {"implementation": i, "input": n, "entities": e, "error": None if e else "no parser", "timing": None}
+            for i, n, e in results
+        ],
+    }
 
 
 class Disagreements(unittest.TestCase):
     def test_equal_counts_agree(self) -> None:
-        self.assertEqual(disagreements([pair("hbt-x", 3), pair("hbt-y", 3)], [MARKDOWN]), [])
+        self.assertEqual(disagreements(document(("hbt-x", "markdown", 3), ("hbt-y", "markdown", 3))), [])
 
     def test_different_counts_name_who_counted_what(self) -> None:
-        found = disagreements([pair("hbt-x", 3), pair("hbt-y", 4), pair("hbt-z", 3)], [MARKDOWN])
-        self.assertEqual(found, ["markdown: 3 (hbt-x, hbt-z), 4 (hbt-y)"])
+        data = document(("hbt-x", "markdown", 3), ("hbt-y", "markdown", 4), ("hbt-z", "markdown", 3))
+        self.assertEqual(disagreements(data), ["markdown: 3 (hbt-x, hbt-z), 4 (hbt-y)"])
 
-    def test_an_implementation_that_fails_is_left_out(self) -> None:
-        """Only one implementation reads YAML; that row is not a disagreement."""
-        found = disagreements([pair("hbt-x", 3), pair("hbt-y", error="no parser for extension")], [MARKDOWN])
-        self.assertEqual(found, [])
+    def test_an_implementation_without_a_count_is_left_out(self) -> None:
+        self.assertEqual(disagreements(document(("hbt-x", "yaml", 3), ("hbt-y", "yaml", None))), [])
+
+    def test_the_report_names_a_disagreeing_row(self) -> None:
+        text = render(document(("hbt-x", "markdown", 3), ("hbt-y", "markdown", 4)))
+        self.assertIn("- markdown: 3 (hbt-x), 4 (hbt-y)", text)
+
+    def test_an_agreeing_report_names_none(self) -> None:
+        self.assertNotIn("These rows disagree", render(document(("hbt-x", "markdown", 3), ("hbt-y", "markdown", 3))))
 
 
 class Run(unittest.TestCase):

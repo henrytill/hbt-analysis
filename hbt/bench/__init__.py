@@ -6,7 +6,7 @@ and runs them.  Which implementations exist, and where their binaries come
 from, is the business of :mod:`hbt.analysis`, which drives this.
 """
 
-from hbt.bench.report import render
+from hbt.bench.report import disagreements, render
 from hbt.bench.results import FORMAT_VERSION, BenchmarkError, dump_results, load_results
 from hbt.bench.timing import (
     Implementation,
@@ -14,7 +14,6 @@ from hbt.bench.timing import (
     Pair,
     benchmark,
     collect,
-    disagreements,
     load_corpus,
     reported_version,
     verify,
