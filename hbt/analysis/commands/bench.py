@@ -123,10 +123,8 @@ def run(selection: Selection, options: Options) -> int:
 def parity(data: dict[str, Any]) -> int:
     """Exit 1, saying where, if the implementations count any input differently.
 
-    A row where they do is a parity bug, not a benchmark result, so it fails
-    the run -- the timed one too, not only the workflow's --info-only one.  A
-    finding rather than a refusal: 1, the way a failing conformance cell or a
-    fuzz find is, not the 2 of :class:`CommandError`.
+    1 is a finding, as a failing conformance cell or a fuzz find is, not the 2
+    of a refusal.
     """
     found = disagreements(data)
     for row in found:
