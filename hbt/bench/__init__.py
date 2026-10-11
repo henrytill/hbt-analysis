@@ -8,7 +8,17 @@ from, is the business of :mod:`hbt.analysis`, which drives this.
 
 from hbt.bench.report import render
 from hbt.bench.results import FORMAT_VERSION, BenchmarkError, dump_results, load_results
-from hbt.bench.timing import Implementation, Input, Pair, benchmark, collect, load_corpus, reported_version, verify
+from hbt.bench.timing import (
+    Implementation,
+    Input,
+    Pair,
+    benchmark,
+    collect,
+    disagreements,
+    load_corpus,
+    reported_version,
+    verify,
+)
 
 __all__ = [
     "FORMAT_VERSION",
@@ -18,6 +28,7 @@ __all__ = [
     "Pair",
     "benchmark",
     "collect",
+    "disagreements",
     "dump_results",
     "load_corpus",
     "load_results",

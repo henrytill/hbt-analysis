@@ -15,7 +15,18 @@ import click
 
 from hbt.analysis.commands import CommandError, invoke, selection_options
 from hbt.analysis.implementations import Selection, build, choose, discover, repo_root
-from hbt.bench import benchmark, collect, dump_results, load_corpus, load_results, render, verify
+from hbt.bench import (
+    Input,
+    Pair,
+    benchmark,
+    collect,
+    disagreements,
+    dump_results,
+    load_corpus,
+    load_results,
+    render,
+    verify,
+)
 
 
 @dataclass(frozen=True)
@@ -106,7 +117,23 @@ def run(selection: Selection, options: Options) -> int:
     # Markdown and HTML are translations of it -- report.md goes to stdout
     # unless asked for, and the HTML is produced by `nix build .#site`.
     write_report(data, options.report)
-    return 0
+
+    # After the writes, so the document and the report survive to diagnose it.
+    return parity(pairs, inputs)
+
+
+def parity(pairs: list[Pair], inputs: list[Input]) -> int:
+    """Exit 1, saying where, if the implementations count any input differently.
+
+    A row where they do is a parity bug, not a benchmark result, so it fails
+    the run -- the timed one too, not only the workflow's --info-only one.  A
+    finding rather than a refusal: 1, the way a failing conformance cell or a
+    fuzz find is, not the 2 of :class:`CommandError`.
+    """
+    found = disagreements(pairs, inputs)
+    for row in found:
+        print(f"entity counts disagree on {row}", file=sys.stderr)
+    return 1 if found else 0
 
 
 @click.command()
