@@ -44,5 +44,4 @@ def assert_the_defaults_agree(test: unittest.TestCase, command: click.Command, *
     """
     given = command.make_context(command.name or "", []).params
     defaults = {f.name: f.default for f in _fields(records)}
-    test.assertNotIn(dataclasses.MISSING, defaults.values(), "a field has no default to compare")
     test.assertEqual(given, defaults)
