@@ -37,16 +37,12 @@ def assert_every_option_names_a_field(test: unittest.TestCase, command: click.Co
 def assert_the_defaults_agree(test: unittest.TestCase, command: click.Command, *records: Any) -> None:
     """Two copies of a default is one that can drift.
 
-    Click leaves an unstated default as a sentinel and passes None for it, so
-    only the ones actually spelled out on both sides compare -- which is every
-    option carrying a number.
+    Compared as the arguments Click builds from an empty command line, not as
+    each option's `default`: that is what the callback actually receives, and
+    it covers what `default` leaves unstated -- the False of a flag, the empty
+    tuple of a repeatable option, the None of an optional one.
     """
-    fields = {f.name: f.default for f in _fields(records) if f.default is not dataclasses.MISSING}
-    compared = 0
-    for param in command.params:
-        if not isinstance(param, click.Option) or param.is_flag or param.name not in fields:
-            continue
-        if isinstance(param.default, (int, float, str)):
-            test.assertEqual(param.default, fields[param.name], param.name)
-            compared += 1
-    test.assertTrue(compared, "no default was actually compared")
+    given = command.make_context(command.name or "", []).params
+    defaults = {f.name: f.default for f in _fields(records)}
+    test.assertNotIn(dataclasses.MISSING, defaults.values(), "a field has no default to compare")
+    test.assertEqual(given, defaults)
