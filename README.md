@@ -41,7 +41,7 @@ python -m hbt.analysis bench --build # --build refreshes the symlinks first
 
 CI is not a usable benchmarking environment — shared, throttled, noisy runners — so nothing is ever *timed* in a workflow. Regenerate the numbers by hand on a quiet machine and commit `benchmarks/results.json`.
 
-`--info-only` is the part of the harness that a workflow *can* run: it does the `--info` stage, records the entity counts, and skips hyperfine entirely, so it measures nothing and does not care how noisy the runner is. What it buys is the one cross-implementation check nothing else enforces — a row where the four disagree is a parity bug — against a corpus that exists in any checkout:
+`--info-only` is the part of the harness that a workflow *can* run: it does the `--info` stage, records the entity counts, and skips hyperfine entirely, so it measures nothing and does not care how noisy the runner is. What it buys is a check that the implementations agree on how many entities each input holds, against a corpus that exists in any checkout:
 
 ```sh
 nix run .#bench -- --info-only --corpus benchmarks/fixtures.toml -o info.json
@@ -61,7 +61,7 @@ Every implementation is tried against every input. A pair that fails is recorded
 
 ### What the report contains
 
-- **Entity counts** from `--info`, one row per input. A row where the four disagree is a parity bug, not a benchmark result.
+- **Entity counts** from `--info`, one row per input. A row where the four disagree is a parity bug, not a benchmark result: the report lists it under the table, and the run exits 1 after writing both files. A `--` cell is left out, so the one implementation that reads YAML is not a disagreement — and one that wrongly rejects an input goes unnoticed ([hbt-data#11](https://github.com/henrytill/hbt-data/issues/11)). Only counts are compared; a field that differs is the conformance matrix's business.
 - **Timings**: mean wall time with standard deviation and the ratio to the fastest implementation on that row. Each input is one hyperfine invocation naming all four commands, so they are measured under the same conditions, and run with `-N` so shell startup is not part of the measurement. The ratios are computed by the renderer from the exported means; hyperfine's own summary goes to stderr and is discarded.
 - **Unavailable** implementations, which produced no results at all, and **Not benchmarked** pairs, with the reason each was left out.
 - **Provenance**: the Nix store path behind every number, the binary's own `--version` string, and — under `.#bench`, where it is known exactly — the revision it was built from.

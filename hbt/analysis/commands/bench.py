@@ -15,7 +15,16 @@ import click
 
 from hbt.analysis.commands import CommandError, invoke, selection_options
 from hbt.analysis.implementations import Selection, build, choose, discover, repo_root
-from hbt.bench import benchmark, collect, dump_results, load_corpus, load_results, render, verify
+from hbt.bench import (
+    benchmark,
+    collect,
+    disagreements,
+    dump_results,
+    load_corpus,
+    load_results,
+    render,
+    verify,
+)
 
 
 @dataclass(frozen=True)
@@ -106,7 +115,21 @@ def run(selection: Selection, options: Options) -> int:
     # Markdown and HTML are translations of it -- report.md goes to stdout
     # unless asked for, and the HTML is produced by `nix build .#site`.
     write_report(data, options.report)
-    return 0
+
+    # After the writes, so the document and the report survive to diagnose it.
+    return parity(data)
+
+
+def parity(data: dict[str, Any]) -> int:
+    """Exit 1, saying where, if the implementations count any input differently.
+
+    1 is a finding, as a failing conformance cell or a fuzz find is, not the 2
+    of a refusal.
+    """
+    found = disagreements(data)
+    for row in found:
+        print(f"entity counts disagree on {row}", file=sys.stderr)
+    return 1 if found else 0
 
 
 @click.command()

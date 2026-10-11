@@ -6,7 +6,15 @@ Generated {{ generated }} on {{ host.node }} ({{ host.machine }}, {{ host.system
 
 {{ entities }}
 
-A row that disagrees is a parity bug, not a benchmark result.
+A row that disagrees is a parity bug, not a benchmark result, and fails the run that produced it.
+{% if disagreements %}
+
+These rows disagree:
+
+{% for row in disagreements %}
+- {{ row }}
+{% endfor %}
+{% endif %}
 {% if timings %}
 
 ## Timings
