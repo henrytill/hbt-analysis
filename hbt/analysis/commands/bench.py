@@ -175,7 +175,7 @@ def parity(data: dict[str, Any]) -> int:
 @click.option(
     "--warmup",
     type=click.IntRange(min=0),
-    default=20,
+    default=Options.warmup,
     show_default=True,
     help="hyperfine warmup runs",
 )
