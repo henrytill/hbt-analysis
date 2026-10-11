@@ -41,7 +41,13 @@ def document(*results: tuple[str, str, int | None]) -> dict[str, Any]:
         ],
         "inputs": [{"name": n, "path": f"{n}.in"} for n in inputs],
         "results": [
-            {"implementation": i, "input": n, "entities": e, "error": None if e else "no parser", "timing": None}
+            {
+                "implementation": i,
+                "input": n,
+                "entities": e,
+                "error": None if e is not None else "no parser",
+                "timing": None,
+            }
             for i, n, e in results
         ],
     }
