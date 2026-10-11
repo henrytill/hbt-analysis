@@ -63,6 +63,32 @@ def _row(cells: Cells, impls: list[str], name: str) -> list[dict[str, Any] | Non
     return [cells.get((impl, name)) for impl in impls]
 
 
+def _cells(data: dict[str, Any]) -> Cells:
+    return {(r["implementation"], r["input"]): r for r in data["results"]}
+
+
+def disagreements(data: dict[str, Any]) -> list[str]:
+    """One line per input the implementations count differently, saying who counted what.
+
+    A judgement of the document, not of the run, so a re-rendered report shows
+    the same rows the run that wrote it failed on.  A cell with no count is
+    left out, the way the entity table shows it as `--`: an implementation
+    that does not read a format is not a disagreement.
+    """
+    cells = _cells(data)
+    found: list[str] = []
+    for inp in data["inputs"]:
+        counts: dict[int, list[str]] = {}
+        for impl in data["implementations"]:
+            cell = cells.get((impl["name"], inp["name"]))
+            if cell is not None and cell["entities"] is not None:
+                counts.setdefault(cell["entities"], []).append(impl["name"])
+        if len(counts) > 1:
+            groups = (f"{n} ({', '.join(names)})" for n, names in sorted(counts.items()))
+            found.append(f"{inp['name']}: {', '.join(groups)}")
+    return found
+
+
 def _entity_rows(cells: Cells, impls: list[str], inputs: list[str]) -> list[list[str]]:
     rows: list[list[str]] = []
     for name in inputs:
@@ -102,7 +128,7 @@ def render(data: dict[str, Any]) -> str:
         raise BenchmarkError(f"results format {version!r}, expected {FORMAT_VERSION!r}")
     impls = [i["name"] for i in data["implementations"]]
     inputs = [i["name"] for i in data["inputs"]]
-    cells: Cells = {(r["implementation"], r["input"]): r for r in data["results"]}
+    cells = _cells(data)
 
     unavailable = [i for i in data["implementations"] if i["error"]]
     failures = [r for r in data["results"] if r["error"]]
@@ -128,6 +154,7 @@ def render(data: dict[str, Any]) -> str:
         host=data["host"],
         hyperfine=data.get("hyperfine"),
         entities=_table(["input"] + impls, _entity_rows(cells, impls, inputs), numeric=1),
+        disagreements=disagreements(data),
         # Empty when nothing was timed, which is what makes the template drop the
         # section -- the same shape as the two below, and the reason _timing_rows
         # is not built for a grid of `--` nobody renders.

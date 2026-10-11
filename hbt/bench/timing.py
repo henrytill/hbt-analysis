@@ -162,27 +162,6 @@ def verify(impls: Sequence[Implementation], inputs: Sequence[Input]) -> list[Pai
     return pairs
 
 
-def disagreements(pairs: Sequence[Pair], inputs: Sequence[Input]) -> list[str]:
-    """One line per input whose entity counts differ, saying who counted what.
-
-    Pairs with an error are left out, so an implementation that does not take
-    a format is not a disagreement -- which also means one that wrongly
-    rejects an input is not caught here (henrytill/hbt-data#11).  Counts
-    only: implementations that agree on the count and differ in a field pass.
-    """
-    found: list[str] = []
-    for inp in inputs:
-        counts: dict[int, list[str]] = {}
-        for pair in pairs:
-            if pair.input == inp.name and pair.entities is not None:
-                counts.setdefault(pair.entities, []).append(pair.impl.name)
-        if len(counts) > 1:
-            found.append(
-                f"{inp.name}: " + ", ".join(f"{n} ({', '.join(names)})" for n, names in sorted(counts.items()))
-            )
-    return found
-
-
 def benchmark(pairs: Sequence[Pair], inputs: Sequence[Input], warmup: int, min_runs: int | None) -> str | None:
     """Time each input across every implementation that handled it.
 
