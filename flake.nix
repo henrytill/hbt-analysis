@@ -183,7 +183,7 @@
         ];
         selectionFlags = pkgs.lib.concatMapStringsSep " " (
           name:
-          ''--add-flags "--binary ${name}=${cliPackage name}/bin/hbt" --add-flags "--revision ${name}=${inputs.${name}.rev}"''
+          ''--add-flags "--binary ${name}=${pkgs.lib.getExe' (cliPackage name) "hbt"}" --add-flags "--revision ${name}=${inputs.${name}.rev}"''
         ) names;
         withImplementations =
           pkgs.runCommand "hbt-analysis-all"
@@ -192,7 +192,7 @@
             }
             ''
               for command in ${pkgs.lib.escapeShellArgs commands}; do
-                makeWrapper ${hbtAnalysis}/bin/hbt-analysis "$out/bin/hbt-analysis-$command" \
+                makeWrapper ${pkgs.lib.getExe hbtAnalysis} "$out/bin/hbt-analysis-$command" \
                   --add-flags "$command" \
                   ${selectionFlags}
                 "$out/bin/hbt-analysis-$command" --help > /dev/null
@@ -235,7 +235,7 @@
         apps =
           pkgs.lib.genAttrs commands (command: {
             type = "app";
-            program = "${withImplementations}/bin/hbt-analysis-${command}";
+            program = pkgs.lib.getExe' withImplementations "hbt-analysis-${command}";
           })
           // {
             default = self.apps.${system}.bench;
