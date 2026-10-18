@@ -154,6 +154,7 @@
           # hyperfine is a runtime dependency that is not a Python package, so
           # it goes on PATH rather than into dependencies.
           makeWrapperArgs = [ "--prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.hyperfine ]}" ];
+          meta.mainProgram = "hbt-analysis";
         };
 
         # Every command with all four implementations built from their own
